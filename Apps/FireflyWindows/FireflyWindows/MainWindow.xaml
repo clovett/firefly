@@ -83,7 +83,7 @@
 
         </Grid>
 
-        <Border Grid.RowSpan="2" Background="#30800000" Visibility="Collapsed" x:Name="ErrorShield">
+        <Border Grid.RowSpan="2" Background="Black" Visibility="Collapsed" x:Name="ErrorShield">
             <TextBlock x:Name="ErrorMessage" FontSize="72" Text="Lost Heartbeat" Foreground="Red" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>
     </Grid>

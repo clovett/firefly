@@ -72,12 +72,22 @@ namespace FireflyWindows
 
         public async Task Connect()
         {
+            Exception error = null;
             await Task.Run(() =>
             {
-                port = new SerialPort(this.name, 57600);
-                port.Open();
+                try
+                {
+                    port = new SerialPort(this.name, 57600);
+                    port.Open();
+                } catch (Exception ex)
+                {
+                    error = ex;
+                }
             });
-
+            if (error != null)
+            {
+                throw error;
+            }
             return;
         }
 
@@ -95,11 +105,34 @@ namespace FireflyWindows
 
                 // get response
                 buffer = new byte[5];
+
+                // look for header byte
+                int retry = 5;
                 int len = 0;
-                while (len < 5)
+                while (retry > 0 && !cancellationToken.IsCancellationRequested)
                 {
-                    len += port.Read(buffer, len, 5 - len);
+                    len = port.Read(buffer, 0, 1);
+                    if (len == 1)
+                    {
+                        if (buffer[0] == HeaderByte)
+                        {
+                            break;
+                        }
+                    }
+                    retry--;
                 }
+
+                retry = 5;
+                while (len < 5 && retry > 0 && !cancellationToken.IsCancellationRequested)
+                {
+                    int read = port.Read(buffer, len, 5 - len);
+                    len += read;
+                    if (read == 0)
+                    {
+                        retry--; // don't get stuck in infinite loop if stream is not responding.
+                    }
+                }
+
                 if (len == 5)
                 {
                     if (buffer[0] == HeaderByte && buffer[4] == Crc(buffer, 0, 4))
@@ -122,6 +155,18 @@ namespace FireflyWindows
                 crc = (byte)((crc >> 1) ^ c);
             }
             return crc;
+        }
+
+        internal void Close()
+        {
+            if (port != null)
+            {
+                using (port)
+                {
+                    port.Close();
+                }
+                port = null;
+            }
         }
     }
 }

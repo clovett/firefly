@@ -148,6 +148,9 @@ namespace FireflyWindows
                     if (m.FireCommand == FireCommand.Heartbeat)
                     {
                         OnLostHeartbeat();
+                        // may need to reset the port
+                        port.Close();
+                        port.Connect().Wait();
                     }
                 }
                 else
@@ -196,8 +199,10 @@ namespace FireflyWindows
                 badHeartBeats = 0;
                 if (goodHeartBeats == ReadyBeats)
                 {
+                    goodHeartBeats = 0;
                     GetTubeInfo();
                 }
+                ShowError("");
             }
             else
             {
@@ -332,7 +337,7 @@ namespace FireflyWindows
             Dispatcher.Invoke(new Action(() =>
             {
                 ErrorMessage.Text = msg;
-                ErrorMessage.Visibility = (string.IsNullOrEmpty(msg)) ? Visibility.Collapsed : Visibility.Visible;
+                ErrorShield.Visibility = (string.IsNullOrEmpty(msg)) ? Visibility.Collapsed : Visibility.Visible;
             }));
         }
     }
