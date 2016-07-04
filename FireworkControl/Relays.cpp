@@ -15,8 +15,8 @@ class Tube {
 			start_time = 0;
 		}
 
-		void set_pin(int pin){
-			pin = pin;
+		void set_pin(int p){
+			pin = p;
 		}
 
 		void fire(){
@@ -30,7 +30,7 @@ class Tube {
 		}
 
 		void processTube(){
-			if(start_time - millis() > FIRETIME){
+			if(millis() - start_time > FIRETIME && firing){
 				firing = false;
 				digitalWrite(pin, STOPPED);
 			}
