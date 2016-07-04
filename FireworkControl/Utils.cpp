@@ -2,50 +2,40 @@
 #include "Arduino.h"
 #include "Utils.h"
 
-unsigned long killTimer = 0;
+unsigned long heartbeatTime = 0;
+unsigned long lastAddedSecondTime = 0;
+unsigned long heartbeatsForSeconds = 0;
 
-void resetKillTimer(){
-	killTimer = millis();
+bool ready = false;
+
+
+/*Call whenever a heartbeat message arrives.
+Set the heartbeatTime to the time when this function is called*/
+void heartbeatRX(){
+	heartbeatTime = millis();
 }
 
-void killMeMaybe(){
-	unsigned long current = millis();
-	if(deltaTime(current, killTimer) > 2000){
-		abortShow();
+/*
+This function manages a global ready flag that controls when the tubes may
+fire. The flag starts as false and then goes true when we have recived at least one
+heartbeat per second for at least three seconds.*/
+void processHeartbeat(){
+	unsigned long currentTime = millis();
+	//if it has been longer than a second since the last beat, set ready to false.
+	if(currentTime - heartbeatTime > TIMEOUT_MS){
+		ready = false;
+		heartbeatsForSeconds = 0;
 	}
-}
-
-bool strComp(char* one, char* two, int strlen){
-	
-	int i = 0;
-	for(i=0;i<strlen;i++){
-		if(one[i] != two[i]){
-			return false;
+	else{
+		if(currentTime - lastAddedSecondTime > 1000){
+			heartbeatsForSeconds++;
+			lastAddedSecondTime = currentTime;
 		}
 	}
-	return true;
-}
-
-int toggleVal(int val){
-	if(val == 0){
-		val = 1;
+	if (heartbeatsForSeconds > VALID_SECONDS){
+		ready = true;
 	}
-	else if(val == 1){
-		val = 0;
-	}
-	return val;
 }
-
-//Repeatedly calls a function at the given interval.
-unsigned long periodicCall(unsigned long lastTime, unsigned long period, int (*f)()){
-	unsigned long current = millis();
-	if(current % period == 0 && deltaTime(current, lastTime) >= 100){
-		(*f)();
-		lastTime = current;
-	}
-	return lastTime;
-}
-
 
 //find the time delta and take wraping into account.
 unsigned long deltaTime(unsigned long current, unsigned long lastTime){
@@ -57,35 +47,4 @@ unsigned long deltaTime(unsigned long current, unsigned long lastTime){
 		delta = current - lastTime;
 	}
 	return delta;
-}
-
-//locks the show into an abort state.
-void abortShow(){
-	char reset = 0;
-	char resetBuffer[5] = {0};
-	char checkMessage[5] = {'r','e','s','e','t'};
-	char bufferCounter = 0;
-	unsigned long resetTimer = 0;
-
-	while(!reset){
-		if(millis() - resetTimer > 1500 && bufferCounter == 0){
-			Serial.println("System pending reset, send \"reset\" to restart.");
-			resetTimer = millis();
-		}
-
-		if(Serial.available() > 0){
-			resetBuffer[bufferCounter] = Serial.read();
-			Serial.print(resetBuffer[bufferCounter]); //print back so that the terminal sees what has been sent.
-			bufferCounter++;
-			if(bufferCounter >= 5){
-				bufferCounter = 0;
-			}	
-		}
-
-		if(strComp(resetBuffer, checkMessage, 5)){
-			Serial.println("reset detected.");
-			reset = 1;
-		}
-	}
-	Serial.println("exited abort loop.");
 }

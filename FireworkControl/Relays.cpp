@@ -1,22 +1,56 @@
 #include "Relays.h"
 #include "Arduino.h"
 
+extern bool ready;
 
 //the array of pins numbers for each tube.
 //this array serves as the loopup table for pin order assignments.
 char pins[NUM_TUBES];
 
+Tube tubes[NUM_TUBES];
+
 //all pins have been fired when current pin == NUM_TUBES
 int firedUpToPin = -1;
 
-//the pin queue is added to by the fireTube method and 
+//the pin queue is added to by the fireTube method and
 //decremented by the processTubes method.
 int pinQueue = -1;
 
-void initRelays(){
+class Tube {
+	int pin;
+	bool active;
+	unsigned long start_time;
 
+	public:
+		Tube(int, bool);
+		void fire();
+		bool isFiring();
+		void processTube();
+};
+
+Tube::processTube(){
+	if(start_time - millis() > FIRETIME){
+		active = false;
+		digitalWrite(pin, STOPPED);
+	}
+}
+
+Tube::fire(){
+	active = True;
+	start_time = millis();
+	digitalWrite(pin, FLOWING);
+}
+
+Tube::isFiring(){
+	return active;
+}
+
+
+void initRelays(){
+	//use for actuall shows so that tubes are spaced out.
 	//assignPins();
 
+	//use for debug so that relays fire in order.
 	assignPinsInRaceOrder();
 
 	pinMode(LED_BUILTIN, OUTPUT);
@@ -25,44 +59,27 @@ void initRelays(){
 		pinMode(pins[i], OUTPUT);
 		digitalWrite(pins[i], STOPPED);
 	}
-
 }
 
-bool fireTube(){
-	if(pinQueue >= NUM_TUBES){
-		return false;
+
+void fireTube(unsigned char tube){
+	if(ready){
+		//turn the tube on.
+
 	}
-	pinQueue++;
-	return true;
 }
 
 
 //this function is called every loop in the main exicution code.
 //this function will have a wrapping problem for 200ms every 7(ish) weeks.
+//this function is called in the main loop
 void processTubes(){
-	static unsigned long endTime;
-	unsigned long currentTime = millis();
 
-	//if there is a pin to process and we are not currently firing.
-	if(pinQueue > firedUpToPin && endTime < currentTime){
-		endTime = currentTime + FIRETIME;
-		firedUpToPin++;
-		Serial.print("FDX");
-	}
-
-	if(endTime > currentTime){
-		digitalWrite(pins[firedUpToPin], FLOWING);
-		digitalWrite(LED_BUILTIN, HIGH);
-	}
-	else{
-		digitalWrite(pins[firedUpToPin], STOPPED);
-		digitalWrite(LED_BUILTIN, LOW);
-	}
 }
 
 
 //this is here to act as a pin maping table.
-//the index array maps to the fire order, the value 
+//the index array maps to the fire order, the value
 //is the pin on the Mega.
 void assignPins(){
 	//Port A
