@@ -1,7 +1,9 @@
-﻿using System;
+﻿//#define DEBUGUI
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -90,6 +92,12 @@ namespace FireflyWindows
                     taskRunning = true;
                     var nowait = Task.Run(() => { CommandQueue(); });
                 }
+
+#if DEBUGUI
+                ShowError("");
+                tubeCount = 40;
+                UpdateTubes();
+#endif
             }
             catch (Exception ex)
             {
@@ -288,6 +296,7 @@ namespace FireflyWindows
             if (r.FireCommand == FireCommand.Ack)
             {
                 int tubeId = r.Arg2;
+                Debug.WriteLine("Tube {0} fired", tubeId);
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     OnTubeFired(tubeId);
