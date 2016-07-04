@@ -13,7 +13,7 @@ namespace FireflyWindows
         string name;
         bool fired;
         int number;
-        SolidColorBrush background;
+        Color color;
 
         public string Name
         {
@@ -33,10 +33,10 @@ namespace FireflyWindows
             set { number = value; OnPropertyChanged("Number"); }
         }
 
-        public SolidColorBrush Background
+        public Color Color
         {
-            get { return background; }
-            set { background = value; OnPropertyChanged("Background"); }
+            get { return color; }
+            set { color = value; OnPropertyChanged("Color"); }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

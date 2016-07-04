@@ -234,12 +234,15 @@ namespace FireflyWindows
                 }
                 else
                 {
-                    tubeCount = r.Arg2;
-                    ShowMessage(tubeCount + " tubes loaded");
-                    Dispatcher.BeginInvoke(new Action(() =>
+                    if (tubeCount != r.Arg2)
                     {
-                        UpdateTubes();
-                    }));
+                        tubeCount = r.Arg2;
+                        ShowMessage(tubeCount + " tubes loaded");
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            UpdateTubes();
+                        }));
+                    }
                 }
             }
             else
@@ -272,13 +275,13 @@ namespace FireflyWindows
         private void OnTubeFailed(int tubeId)
         {
             Tube t = (from tube in allTubes where tube.Number == tubeId select tube).FirstOrDefault();
-            t.Background = Brushes.Black;
+            t.Color = Colors.Black;
         }
 
         private void OnTubeFired(int tubeId)
         {
             Tube t = (from tube in allTubes where tube.Number == tubeId select tube).FirstOrDefault();
-            t.Background = Brushes.Transparent;
+            t.Color = Colors.Transparent;
         }
 
         private void UpdateTubes()
@@ -287,7 +290,7 @@ namespace FireflyWindows
             for (int i = 0; i < tubeCount; i++)
             {
                 int tubeId = i;
-                Tube t = new Tube() { Name = tubeId.ToString(), Background = Brushes.Green, Number = tubeId };
+                Tube t = new Tube() { Name = tubeId.ToString(), Color = Colors.Green, Number = tubeId };
                 tubes.Add(t);
             }
             allTubes = tubes;
@@ -322,7 +325,7 @@ namespace FireflyWindows
             if (!tube.Fired)
             {
                 tube.Fired = true;
-                tube.Background = Brushes.Red;
+                tube.Color = Colors.Red;
 
                 lock (queue)
                 {
