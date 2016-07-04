@@ -12,9 +12,9 @@ void assignPins();
 void assignPinsInRaceOrder();
 void initRelays();
 
-bool fireTube();
+void fireTube(unsigned char tube);
 
-//a function that is called to manage the timing for 
+//a function that is called to manage the timing for
 //actually firing the shots.
 void processTubes();
 

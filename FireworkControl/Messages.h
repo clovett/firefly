@@ -6,12 +6,19 @@
 
 #include "Arduino.h"
 
-#define BEAT_TIME 1000
-#define HEARTBEAT_TIMEOUT 1000
-#define MSG_LEN 3
+#define MSG_LEN 5
+
+#define START_BYTE 0xFE
+#define CHKSUM_SEED 0x00
 
 void message_init();
 int message_rx();
-int heartbeat_tx();
+
+void send_ready();
+void send_ack();
+void send_nack(unsigned char* message);
+
+void message_tx(char cmd, char arg0, char arg1);
+unsigned char calc_crc(unsigned char* message);
 
 #endif
