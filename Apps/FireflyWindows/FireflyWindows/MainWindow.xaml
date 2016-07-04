@@ -13,10 +13,10 @@
 
         <!--Control colors.-->
         <Color x:Key="ControlNormalColor">#FF000080</Color>
-        <Color x:Key="ControlMouseOverColor">#FF202020</Color>
+        <Color x:Key="ControlMouseOverColor">LimeGreen</Color>
         <Color x:Key="DisabledControlColor">#FFF2F2F2</Color>
         <Color x:Key="DisabledForegroundColor">#FFBFBFBF</Color>
-        <Color x:Key="ControlPressedColor">#50FFFFFF</Color>
+        <Color x:Key="ControlPressedColor">Red</Color>
         
         <!-- Button -->
         <Style x:Key="TubeButton" TargetType="Button">

@@ -93,15 +93,31 @@ namespace FireflyWindows
 
         public async Task<FireMessage> Send(FireMessage m, CancellationToken cancellationToken)
         {
-            return await Task.Run(() =>
+            Exception error = null;
+            FireMessage result = await Task.Run(() =>
             {
+                SerialPort p = port;
+                if (p == null)
+                {
+                    try
+                    {
+                        port = p = new SerialPort(this.name, 57600);
+                        port.Open();
+                    }
+                    catch (Exception ex)
+                    {
+                        error = ex;
+                        return null;
+                    }
+                }
+
                 byte[] buffer = new byte[5];
                 buffer[0] = HeaderByte;
                 buffer[1] = (byte)m.FireCommand;
                 buffer[2] = m.Arg1;
                 buffer[3] = m.Arg2;
                 buffer[4] = Crc(buffer, 0, 4);
-                port.Write(buffer, 0, buffer.Length);
+                p.Write(buffer, 0, buffer.Length);
 
                 // get response
                 buffer = new byte[5];
@@ -111,7 +127,7 @@ namespace FireflyWindows
                 int len = 0;
                 while (retry > 0 && !cancellationToken.IsCancellationRequested)
                 {
-                    len = port.Read(buffer, 0, 1);
+                    len = p.Read(buffer, 0, 1);
                     if (len == 1)
                     {
                         if (buffer[0] == HeaderByte)
@@ -125,7 +141,7 @@ namespace FireflyWindows
                 retry = 5;
                 while (len < 5 && retry > 0 && !cancellationToken.IsCancellationRequested)
                 {
-                    int read = port.Read(buffer, len, 5 - len);
+                    int read = p.Read(buffer, len, 5 - len);
                     len += read;
                     if (read == 0)
                     {
@@ -144,6 +160,12 @@ namespace FireflyWindows
                 // message failed.
                 return new FireMessage() { FireCommand = FireCommand.Nack };
             }, cancellationToken);
+
+            if (error != null)
+            {
+                throw error;
+            }
+            return result;
         }
 
         private byte Crc(byte[] buffer, int offset, int len)
