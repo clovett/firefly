@@ -58,8 +58,11 @@ int message_rx(){
             message_tx('N', 'F', incoming[2]);
           }
           else{
-            fireTube(incoming[2]);
-            message_tx('A', 'F', incoming[2]);
+            if (fireTube(incoming[2])) {
+              message_tx('A', 'F', incoming[2]);
+            } else {
+              message_tx('N', 'F', incoming[2]);
+            }
           }
           break;
         }
@@ -68,7 +71,7 @@ int message_rx(){
             message_tx('A', 'I', NUM_TUBES);
           }
           else{
-            message_tx('A', 'I', 0);
+            message_tx('N', 'I', 0);
           }
           break;
         }

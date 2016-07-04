@@ -6,13 +6,13 @@
 #define FLOWING 0	//means current is flowing.
 
 #define NUM_TUBES 40
-#define FIRETIME 200
+#define FIRETIME 1000
 
 void assignPins();
 void assignPinsInRaceOrder();
 void initRelays();
 
-void fireTube(unsigned char tube);
+bool fireTube(unsigned char tube);
 
 //a function that is called to manage the timing for
 //actually firing the shots.

@@ -72,34 +72,83 @@ namespace FireflyWindows
 
         public async Task Connect()
         {
+            Exception error = null;
             await Task.Run(() =>
             {
-                port = new SerialPort(this.name, 57600);
-                port.Open();
+                try
+                {
+                    port = new SerialPort(this.name, 57600);
+                    port.Open();
+                } catch (Exception ex)
+                {
+                    error = ex;
+                }
             });
-
+            if (error != null)
+            {
+                throw error;
+            }
             return;
         }
 
         public async Task<FireMessage> Send(FireMessage m, CancellationToken cancellationToken)
         {
-            return await Task.Run(() =>
+            Exception error = null;
+            FireMessage result = await Task.Run(() =>
             {
+                SerialPort p = port;
+                if (p == null)
+                {
+                    try
+                    {
+                        port = p = new SerialPort(this.name, 57600);
+                        port.Open();
+                    }
+                    catch (Exception ex)
+                    {
+                        error = ex;
+                        return null;
+                    }
+                }
+
                 byte[] buffer = new byte[5];
                 buffer[0] = HeaderByte;
                 buffer[1] = (byte)m.FireCommand;
                 buffer[2] = m.Arg1;
                 buffer[3] = m.Arg2;
                 buffer[4] = Crc(buffer, 0, 4);
-                port.Write(buffer, 0, buffer.Length);
+                p.Write(buffer, 0, buffer.Length);
 
                 // get response
                 buffer = new byte[5];
+
+                // look for header byte
+                int retry = 5;
                 int len = 0;
-                while (len < 5)
+                while (retry > 0 && !cancellationToken.IsCancellationRequested)
                 {
-                    len += port.Read(buffer, len, 5 - len);
+                    len = p.Read(buffer, 0, 1);
+                    if (len == 1)
+                    {
+                        if (buffer[0] == HeaderByte)
+                        {
+                            break;
+                        }
+                    }
+                    retry--;
                 }
+
+                retry = 5;
+                while (len < 5 && retry > 0 && !cancellationToken.IsCancellationRequested)
+                {
+                    int read = p.Read(buffer, len, 5 - len);
+                    len += read;
+                    if (read == 0)
+                    {
+                        retry--; // don't get stuck in infinite loop if stream is not responding.
+                    }
+                }
+
                 if (len == 5)
                 {
                     if (buffer[0] == HeaderByte && buffer[4] == Crc(buffer, 0, 4))
@@ -111,6 +160,12 @@ namespace FireflyWindows
                 // message failed.
                 return new FireMessage() { FireCommand = FireCommand.Nack };
             }, cancellationToken);
+
+            if (error != null)
+            {
+                throw error;
+            }
+            return result;
         }
 
         private byte Crc(byte[] buffer, int offset, int len)
@@ -122,6 +177,18 @@ namespace FireflyWindows
                 crc = (byte)((crc >> 1) ^ c);
             }
             return crc;
+        }
+
+        internal void Close()
+        {
+            if (port != null)
+            {
+                using (port)
+                {
+                    port.Close();
+                }
+                port = null;
+            }
         }
     }
 }

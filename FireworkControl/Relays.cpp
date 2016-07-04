@@ -15,8 +15,10 @@ class Tube {
 			start_time = 0;
 		}
 
-		void set_pin(int p){
-			pin = p;
+		void init_pin(int pin){
+			pin = pin;
+      pinMode(pin, OUTPUT);
+      digitalWrite(pin, STOPPED);
 		}
 
 		void fire(){
@@ -30,7 +32,8 @@ class Tube {
 		}
 
 		void processTube(){
-			if(millis() - start_time > FIRETIME && firing){
+
+			if(firing && start_time - millis() > FIRETIME){
 				firing = false;
 				digitalWrite(pin, STOPPED);
 			}
@@ -51,7 +54,7 @@ int firedUpToPin = -1;
 int pinQueue = -1;
 
 void initRelays(){
-	//use for actuall shows so that tubes are spaced out.
+	//use for actual shows so that tubes are spaced out.
 	//assignPins();
 
 	//use for debug so that relays fire in order.
@@ -60,17 +63,19 @@ void initRelays(){
 	pinMode(LED_BUILTIN, OUTPUT);
 
 	for(int i = 0; i<NUM_TUBES; i++){
-		pinMode(pins[i], OUTPUT);
-		digitalWrite(pins[i], STOPPED);
-		tubes[i].set_pin(pins[i]);
+		tubes[i].init_pin(pins[i]);
 	}
 }
 
-void fireTube(unsigned char tube){
+bool fireTube(unsigned char tube){
 	if(ready){
-		//turn the tube on.
-		tubes[tube].fire();
+    if (tube < NUM_TUBES) {
+		  //turn the tube on.
+		  tubes[tube].fire();
+      return true;
+    }
 	}
+  return false;
 }
 
 //this function is called every loop in the main exicution code.

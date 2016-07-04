@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -28,7 +29,7 @@ namespace FireflyWindows
         Queue<FireMessage> queue = new Queue<FireMessage>();
         AutoResetEvent cmdAvailable = new AutoResetEvent(false);
         DispatcherTimer heartBeatTimer;
-        List<Tube> allTubes = new List<Tube>();
+        ObservableCollection<Tube> allTubes = new ObservableCollection<Tube>();
         int tubeCount;
         bool closed;
         const int ReadyBeats = 8;
@@ -37,6 +38,7 @@ namespace FireflyWindows
         {
             InitializeComponent();
             PortName.Text = "";
+            TubeList.ItemsSource = allTubes;
 
             heartBeatTimer = new DispatcherTimer(TimeSpan.FromSeconds(0.5), DispatcherPriority.Normal, OnHeartbeatTick, this.Dispatcher);
             heartBeatTimer.Stop();
@@ -69,9 +71,12 @@ namespace FireflyWindows
             }
         }
 
+        bool connecting;
+
         async Task Connect(FirePort port)
         {
-            ShowMessage("Connecting...");
+            ShowError("Connecting...");
+            connecting = true;
 
             try
             {
@@ -79,15 +84,20 @@ namespace FireflyWindows
                 await port.Connect();
                 PortName.Text = port.Name;
                 this.port = port;
-                ShowMessage("Connected");
                 StartHeartbeat();
-                var nowait = Task.Run(() => { CommandQueue(); });
+                if (!taskRunning)
+                {
+                    taskRunning = true;
+                    var nowait = Task.Run(() => { CommandQueue(); });
+                }
             }
             catch (Exception ex)
             {
                 ShowMessage(ex.Message);
             }
         }
+
+        bool taskRunning;
 
         private void CommandQueue()
         {
@@ -109,6 +119,7 @@ namespace FireflyWindows
                     ProcessCommand(m);
                 }
             }
+            taskRunning = false;
         }
 
         private void StartHeartbeat()
@@ -147,11 +158,23 @@ namespace FireflyWindows
                     ShowMessage(m.FireCommand.ToString() + " timeout");
                     if (m.FireCommand == FireCommand.Heartbeat)
                     {
-                        OnLostHeartbeat();
+                        if (!connecting)
+                        {
+                            OnLostHeartbeat();
+                        }
+                        // may need to reset the port
+                        port.Close();
+                        StartHeartbeat();
                     }
                 }
                 else
                 {
+                    if (connecting)
+                    {
+                        connecting = false;
+                        ShowError("");
+                        ShowMessage("connected");
+                    }
                     FireMessage r = sendTask.Result;                    
                     // great!
                     switch (m.FireCommand)
@@ -172,6 +195,7 @@ namespace FireflyWindows
             catch (Exception ex)
             {
                 ShowMessage(ex.Message);
+                StartHeartbeat();
             }
         }
 
@@ -196,8 +220,10 @@ namespace FireflyWindows
                 badHeartBeats = 0;
                 if (goodHeartBeats == ReadyBeats)
                 {
+                    goodHeartBeats = 0;
                     GetTubeInfo();
                 }
+                ShowError("");
             }
             else
             {
@@ -215,7 +241,17 @@ namespace FireflyWindows
         private void OnLostHeartbeat()
         {
             ShowError("Lost Heartbeat");
-            StartHeartbeat();
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                allTubes.Clear();
+                tubeCount = 0;
+                goodHeartBeats = 0;
+                badHeartBeats = 0;
+                lock (queue)
+                {
+                    queue.Clear();
+                }
+            }));
         }
 
         private void OnInfoResponse(FireMessage r)
@@ -229,12 +265,15 @@ namespace FireflyWindows
                 }
                 else
                 {
-                    tubeCount = r.Arg2;
-                    ShowMessage(tubeCount + " tubes loaded");
-                    Dispatcher.BeginInvoke(new Action(() =>
+                    if (tubeCount != r.Arg2)
                     {
-                        UpdateTubes();
-                    }));
+                        tubeCount = r.Arg2;
+                        ShowMessage(tubeCount + " tubes loaded");
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            UpdateTubes();
+                        }));
+                    }
                 }
             }
             else
@@ -267,26 +306,24 @@ namespace FireflyWindows
         private void OnTubeFailed(int tubeId)
         {
             Tube t = (from tube in allTubes where tube.Number == tubeId select tube).FirstOrDefault();
-            t.Background = Brushes.Black;
+            t.Color = Colors.Black;
         }
 
         private void OnTubeFired(int tubeId)
         {
             Tube t = (from tube in allTubes where tube.Number == tubeId select tube).FirstOrDefault();
-            t.Background = Brushes.Transparent;
+            t.Color = Colors.Transparent;
         }
 
         private void UpdateTubes()
         {
-            List<Tube> tubes = new List<FireflyWindows.Tube>();
+            allTubes.Clear();
             for (int i = 0; i < tubeCount; i++)
             {
                 int tubeId = i;
-                Tube t = new Tube() { Name = tubeId.ToString(), Background = Brushes.Green, Number = tubeId };
-                tubes.Add(t);
+                Tube t = new Tube() { Name = tubeId.ToString(), Color = Colors.Green, Number = tubeId };
+                allTubes.Add(t);
             }
-            allTubes = tubes;
-            TubeList.ItemsSource = tubes;
         }
 
         private void Stopheartbeat()
@@ -314,17 +351,13 @@ namespace FireflyWindows
         {
             Button button = (Button)sender;
             Tube tube = (Tube)button.DataContext;
-            if (!tube.Fired)
+            tube.Fired = true;
+            tube.Color = Colors.Red;
+            lock (queue)
             {
-                tube.Fired = true;
-                tube.Background = Brushes.Red;
-
-                lock (queue)
-                {
-                    queue.Enqueue(new FireMessage() { FireCommand = FireCommand.Fire, Arg1 = (byte)tube.Number });
-                }
-                cmdAvailable.Set();
+                queue.Enqueue(new FireMessage() { FireCommand = FireCommand.Fire, Arg1 = (byte)tube.Number });
             }
+            cmdAvailable.Set();
         }
 
         private void ShowError(string msg)
@@ -332,7 +365,7 @@ namespace FireflyWindows
             Dispatcher.Invoke(new Action(() =>
             {
                 ErrorMessage.Text = msg;
-                ErrorMessage.Visibility = (string.IsNullOrEmpty(msg)) ? Visibility.Collapsed : Visibility.Visible;
+                ErrorShield.Visibility = (string.IsNullOrEmpty(msg)) ? Visibility.Collapsed : Visibility.Visible;
             }));
         }
     }
