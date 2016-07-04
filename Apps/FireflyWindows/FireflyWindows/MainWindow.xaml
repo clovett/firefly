@@ -25,6 +25,7 @@
             <Setter Property="Height" Value="100" />
             <Setter Property="Width"  Value="100" />
             <Setter Property="Foreground" Value="#FFFFFFFF" />
+            <Setter Property="Stylus.IsPressAndHoldEnabled" Value="False"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -40,18 +41,18 @@
                                         <VisualTransition GeneratedDuration="0" To="Pressed" />
                                     </VisualStateGroup.Transitions>
                                     <VisualState x:Name="Normal" />
-                                    <VisualState x:Name="MouseOver">
+                                    <!--<VisualState x:Name="MouseOver">
                                         <Storyboard>
                                             <ColorAnimationUsingKeyFrames Storyboard.TargetProperty="(Panel.Background).(SolidColorBrush.Color)"
                                                 Storyboard.TargetName="Border">
                                                 <EasingColorKeyFrame KeyTime="0" Value="{StaticResource ControlMouseOverColor}" />
                                             </ColorAnimationUsingKeyFrames>
                                         </Storyboard>
-                                    </VisualState>
+                                    </VisualState>-->
                                     <VisualState x:Name="Pressed">
                                         <Storyboard>
                                             <ColorAnimationUsingKeyFrames Storyboard.TargetProperty="(Panel.Background).(SolidColorBrush.Color)"
-                                                Storyboard.TargetName="Border">
+                                                Storyboard.TargetName="Border"  >
                                                 <EasingColorKeyFrame KeyTime="0" Value="{StaticResource ControlPressedColor}" />
                                             </ColorAnimationUsingKeyFrames>
                                         </Storyboard>
@@ -112,7 +113,8 @@
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Button Background="{Binding Background}" Margin="5" Click="OnTubeSelected" Style="{StaticResource TubeButton}">
-                        <TextBlock Text="{Binding Name}" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Name}" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   />
                     </Button>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
