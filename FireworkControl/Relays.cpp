@@ -3,6 +3,40 @@
 
 extern bool ready;
 
+class Tube {
+	int pin;
+	bool firing;
+	unsigned long start_time;
+
+	public:
+		Tube(int pin = 0){
+			pin = pin;
+			firing = false;
+			start_time = 0;
+		}
+
+		void set_pin(int pin){
+			pin = pin;
+		}
+
+		void fire(){
+				firing = true;
+				start_time = millis();
+				digitalWrite(pin, FLOWING);
+		}
+
+		bool isFiring(){
+			return firing;
+		}
+
+		void processTube(){
+			if(start_time - millis() > FIRETIME){
+				firing = false;
+				digitalWrite(pin, STOPPED);
+			}
+		}
+};
+
 //the array of pins numbers for each tube.
 //this array serves as the loopup table for pin order assignments.
 char pins[NUM_TUBES];
@@ -16,36 +50,6 @@ int firedUpToPin = -1;
 //decremented by the processTubes method.
 int pinQueue = -1;
 
-class Tube {
-	int pin;
-	bool active;
-	unsigned long start_time;
-
-	public:
-		Tube(int, bool);
-		void fire();
-		bool isFiring();
-		void processTube();
-};
-
-Tube::processTube(){
-	if(start_time - millis() > FIRETIME){
-		active = false;
-		digitalWrite(pin, STOPPED);
-	}
-}
-
-Tube::fire(){
-	active = True;
-	start_time = millis();
-	digitalWrite(pin, FLOWING);
-}
-
-Tube::isFiring(){
-	return active;
-}
-
-
 void initRelays(){
 	//use for actuall shows so that tubes are spaced out.
 	//assignPins();
@@ -58,23 +62,24 @@ void initRelays(){
 	for(int i = 0; i<NUM_TUBES; i++){
 		pinMode(pins[i], OUTPUT);
 		digitalWrite(pins[i], STOPPED);
+		tubes[i].set_pin(pins[i]);
 	}
 }
-
 
 void fireTube(unsigned char tube){
 	if(ready){
 		//turn the tube on.
-
+		tubes[tube].fire();
 	}
 }
-
 
 //this function is called every loop in the main exicution code.
 //this function will have a wrapping problem for 200ms every 7(ish) weeks.
 //this function is called in the main loop
 void processTubes(){
-
+	for(int i=0;i<NUM_TUBES;i++){
+		tubes[i].processTube();
+	}
 }
 
 

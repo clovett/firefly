@@ -33,23 +33,6 @@ void message_tx(char cmd, char arg0, char arg1){
   Serial.write(message, MSG_LEN);
 }
 
-/*send a response for a correctly parsed command*/
-void send_ack(char cmd){
-  char arg = 0;
-  if(cmd == 'I'){
-    if(ready){
-      arg = NUM_TUBES;
-    }
-  }
-  message_tx('A', cmd, arg);
-}
-
-/*send a response for a unknown command*/
-void send_nack(unsigned char* message){
-  unsigned char crc = calc_crc(message);
-  message_tx('N', crc, message[4]);
-}
-
 /*handle incoming messages and call actions if need be.*/
 int message_rx(){
   unsigned char incoming[MSG_LEN] = {0};
@@ -67,26 +50,36 @@ int message_rx(){
       {
         case 'H':{ //we've gotten a heartbeat
           heartbeatRX();
-          send_ack('H');
+          message_tx('A', 'H', 0);
           break;
         }
         case 'F':{ //we've gotten a fire tube command
-          fireTube(incoming[3]);
-          send_ack('F');
+          if(incoming[3] >= NUM_TUBES){
+            message_tx('N', 'F', incoming[2]);
+          }
+          else{
+            fireTube(incoming[3]);
+            message_tx('A', 'F', incoming[2]);
+          }
           break;
         }
         case 'I':{ //we've gotten a request for info
-          send_ack('I');
+          if(ready){
+            message_tx('A', 'I', NUM_TUBES);
+          }
+          else{
+            message_tx('A', 'I', 0);
+          }
           break;
         }
         default:{ //otherwise we don't know what we have.
-          send_nack(incoming);
+          message_tx('N', incoming[1], 0);
           break;
         }
       }
     }
     else{ //this means that we got a malformed packet
-      send_nack(incoming);
+      message_tx('N', incoming[1], 0);
     }
 	}
 }
