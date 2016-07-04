@@ -9,14 +9,14 @@ class Tube {
 	unsigned long start_time;
 
 	public:
-		Tube(int pin = 0){
-			pin = pin;
+		Tube(int p = 0){
+			pin = p;
 			firing = false;
 			start_time = 0;
 		}
 
-		void init_pin(int pin){
-			pin = pin;
+		void init_pin(int p){
+			pin = p;
       pinMode(pin, OUTPUT);
       digitalWrite(pin, STOPPED);
 		}
@@ -27,13 +27,8 @@ class Tube {
 				digitalWrite(pin, FLOWING);
 		}
 
-		bool isFiring(){
-			return firing;
-		}
-
 		void processTube(){
-
-			if(firing && start_time - millis() > FIRETIME){
+			if(firing && millis() - start_time > FIRETIME){
 				firing = false;
 				digitalWrite(pin, STOPPED);
 			}
@@ -60,9 +55,9 @@ void initRelays(){
 	//use for debug so that relays fire in order.
 	assignPinsInRaceOrder();
 
-	pinMode(LED_BUILTIN, OUTPUT);
-
 	for(int i = 0; i<NUM_TUBES; i++){
+		pinMode(pins[i], OUTPUT);
+		digitalWrite(pins[i], STOPPED);
 		tubes[i].init_pin(pins[i]);
 	}
 }

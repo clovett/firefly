@@ -3,10 +3,10 @@
 #define RELAYS_H
 
 #define STOPPED 1 	//not firing, current is stopped.
-#define FLOWING 0	//means current is flowing.
+#define FLOWING 0	 //means current is flowing.
 
 #define NUM_TUBES 40
-#define FIRETIME 1000
+#define FIRETIME 200
 
 void assignPins();
 void assignPinsInRaceOrder();
