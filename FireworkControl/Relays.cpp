@@ -32,6 +32,7 @@ class Tube {
 		}
 
 		void processTube(){
+
 			if(firing && start_time - millis() > FIRETIME){
 				firing = false;
 				digitalWrite(pin, STOPPED);

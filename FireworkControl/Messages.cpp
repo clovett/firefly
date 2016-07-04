@@ -54,13 +54,13 @@ int message_rx(){
           break;
         }
         case 'F':{ //we've gotten a fire tube command
-          if(incoming[3] >= NUM_TUBES){
+          if(incoming[2] >= NUM_TUBES){
             message_tx('N', 'F', incoming[2]);
           }
           else{
-            if (fireTube(incoming[3])) {
+            if (fireTube(incoming[2])) {
               message_tx('A', 'F', incoming[2]);
-            } else {          
+            } else {
               message_tx('N', 'F', incoming[2]);
             }
           }
