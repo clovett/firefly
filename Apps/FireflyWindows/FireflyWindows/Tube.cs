@@ -12,8 +12,9 @@ namespace FireflyWindows
     {
         string name;
         bool fired;
+        bool firing;
+        bool failed;
         int number;
-        Color color;
 
         public string Name
         {
@@ -27,16 +28,22 @@ namespace FireflyWindows
             set { fired = value; OnPropertyChanged("Fired"); }
         }
 
+        public bool Firing
+        {
+            get { return firing; }
+            set { firing = value; OnPropertyChanged("Firing"); }
+        }
+
+        public bool Failed
+        {
+            get { return failed; }
+            set { failed = value; OnPropertyChanged("Failed"); }
+        }
+
         public int Number
         {
             get { return number; }
             set { number = value; OnPropertyChanged("Number"); }
-        }
-
-        public Color Color
-        {
-            get { return color; }
-            set { color = value; OnPropertyChanged("Color"); }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

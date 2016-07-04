@@ -20,7 +20,9 @@ namespace FireflyWindows
         // responses
         Ready = 'R',
         Ack = 'A',
-        Nack = 'N'
+        Nack = 'N',
+        Timeout = 'T',
+        Error = 'E'
     }
 
     class FireMessage
@@ -28,6 +30,8 @@ namespace FireflyWindows
         public FireCommand FireCommand;
         public byte Arg1;
         public byte Arg2;
+        public FireCommand SentCommand;
+        public Exception Error;
     }
 
     class FirePort
@@ -153,7 +157,10 @@ namespace FireflyWindows
                 {
                     if (buffer[0] == HeaderByte && buffer[4] == Crc(buffer, 0, 4))
                     {
-                        FireMessage r = new FireMessage() { FireCommand = (FireCommand)buffer[1], Arg1 = buffer[2], Arg2 = buffer[3] };
+                        FireMessage r = new FireMessage() {
+                            FireCommand = (FireCommand)buffer[1], Arg1 = buffer[2], Arg2 = buffer[3],
+                            SentCommand = m.FireCommand
+                        };
                         return r;
                     }
                 }
