@@ -59,6 +59,7 @@
     <Compile Include="FireCommands.cs" />
     <Compile Include="FiringPatterns.cs" />
     <Compile Include="Tube.cs" />
+    <Compile Include="UiDispatcher.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

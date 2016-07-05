@@ -52,7 +52,11 @@ namespace FireflyWindows
         {
             if (PropertyChanged != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(name));
+                UiDispatcher.RunOnUIThread(() =>
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs(name));
+                });
+
             }
         }
     }

@@ -12,7 +12,7 @@ namespace FireflyWindows
     {
         bool stopped;
         IList<Tube> allTubes;
-        TimeSpan delay;
+
         bool complete;
         FireCommands cmds;
 
@@ -21,10 +21,9 @@ namespace FireflyWindows
             this.cmds = cmds;
         }
 
-        public void Start(IList<Tube> allTubes, TimeSpan delay)
+        public void Start(IList<Tube> allTubes)
         {
             this.allTubes = allTubes;
-            this.delay = delay;
             Resume();    
         }
 
@@ -37,9 +36,14 @@ namespace FireflyWindows
             stopped = true;
         }
 
-        public async void Resume()
+        public void Resume()
         {
             stopped = false;
+            Task.Run(new Action(RunThread));
+        }
+
+        private void RunThread()
+        {
             while (!stopped)
             {
                 Tube tube = Next();
@@ -50,7 +54,7 @@ namespace FireflyWindows
                 }
                 tube.Firing = true;
                 cmds.FireTube(tube);
-                await Task.Delay(200);
+                Delay();
                 tube.Firing = false;
             }
         }
@@ -60,15 +64,22 @@ namespace FireflyWindows
             return null;
         }
 
+        public virtual void Delay()
+        {
+
+        }
+
         public bool Complete { get { return complete; } }
     }
 
     class SequentialPattern : FiringPattern
     {
+        TimeSpan delay;
         int pos;
 
-        public SequentialPattern(FireCommands cmds) : base(cmds)
+        public SequentialPattern(FireCommands cmds, TimeSpan delay) : base(cmds)
         {
+            this.delay = delay;
         }
 
         public override Tube Next()
@@ -78,6 +89,43 @@ namespace FireflyWindows
                 return GetTube(pos++);
             }
             return null;
+        }
+        public override void Delay()
+        {
+            Thread.Sleep(delay);
+        }
+
+    }
+
+    class CrescendoPattern : FiringPattern
+    {
+        int pos;
+        int sleepStep;
+        int nextSleep;
+
+        public CrescendoPattern(FireCommands cmds) : base(cmds)
+        {
+        }
+
+        public override Tube Next()
+        {
+            if (nextSleep == 0)
+            {
+                sleepStep = 50;
+                nextSleep = Count * sleepStep;
+            }
+
+            if (pos < Count)
+            {
+                nextSleep -= sleepStep;
+                return GetTube(pos++);
+            }
+            return null;
+        }
+
+        public override void Delay()
+        {
+            Thread.Sleep(nextSleep);
         }
     }
 }

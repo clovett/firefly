@@ -1,4 +1,4 @@
-﻿//#define DEBUGUI
+﻿#define DEBUGUI
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -37,6 +37,8 @@ namespace FireflyWindows
         public MainWindow()
         {
             InitializeComponent();
+            UiDispatcher.Initialize(this.Dispatcher);
+
             PortName.Text = "";
             TubeList.ItemsSource = allTubes;
 
@@ -306,23 +308,6 @@ namespace FireflyWindows
             Tube tube = (Tube)button.DataContext;
             tube.Firing = true;
             cmds.FireTube(tube);
-
-#if DEBUGUI
-            await Task.Delay(1000);
-            tube.Firing = false;
-            await Task.Delay(1000);
-            tube.Firing = true;
-
-            await Task.Delay(1000);
-            tube.Fired = true;
-            await Task.Delay(1000);
-            tube.Fired = false;
-
-            await Task.Delay(1000);
-            tube.Failed = true;
-            await Task.Delay(1000);
-            tube.Failed = false;
-#endif
         }
 
         private void ShowError(string msg)
@@ -355,8 +340,9 @@ namespace FireflyWindows
             }
             else 
             {
-                pattern = new SequentialPattern(cmds);
-                pattern.Start(this.allTubes, TimeSpan.FromMilliseconds(200));
+                pattern = new SequentialPattern(cmds, TimeSpan.FromMilliseconds(100));
+                //pattern = new CrescendoPattern(cmds);
+                pattern.Start(this.allTubes);
             }
         }
 
