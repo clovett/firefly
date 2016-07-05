@@ -192,7 +192,6 @@
                 <TextBlock Text="CRES" Foreground="{StaticResource ForegroundBrush}"/>
             </Button>
 
-
             <TextBlock x:Name="PortName" Grid.Column="5" Foreground="Gray" Text="COM3" Margin="10" VerticalAlignment="Center"/>
 
         </Grid>

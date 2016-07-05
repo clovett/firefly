@@ -110,6 +110,7 @@ namespace FireflyWindows
         int sleepStep;
         int nextSleep;
         int acceleration = 10;
+        bool initialized;
 
         public CrescendoPattern(FireCommands cmds) : base(cmds)
         {
@@ -117,10 +118,12 @@ namespace FireflyWindows
 
         public override Tube Next()
         {
-            if (nextSleep == 0)
+            if (!initialized)
             {
+                initialized = true;
+                nextSleep = 0;
                 sleepStep = 50;
-                for (int i = 0; i < Count; i++)
+                for (int i = 0; i <= Count; i++)
                 {
                     nextSleep += sleepStep;
                     sleepStep += acceleration;
@@ -139,7 +142,10 @@ namespace FireflyWindows
         public override void Delay()
         {
             System.Diagnostics.Debug.WriteLine("Sleeping " + nextSleep);
-            Thread.Sleep(nextSleep);
+            int sleep = (nextSleep < 100) ? 100 : nextSleep;
+            {
+                Thread.Sleep(sleep);
+            }
         }
     }
 }
