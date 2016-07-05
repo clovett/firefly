@@ -1,4 +1,4 @@
-﻿//#define DEBUGUI
+﻿#define DEBUGUI
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -306,23 +306,6 @@ namespace FireflyWindows
             Tube tube = (Tube)button.DataContext;
             tube.Firing = true;
             cmds.FireTube(tube);
-
-#if DEBUGUI
-            await Task.Delay(1000);
-            tube.Firing = false;
-            await Task.Delay(1000);
-            tube.Firing = true;
-
-            await Task.Delay(1000);
-            tube.Fired = true;
-            await Task.Delay(1000);
-            tube.Fired = false;
-
-            await Task.Delay(1000);
-            tube.Failed = true;
-            await Task.Delay(1000);
-            tube.Failed = false;
-#endif
         }
 
         private void ShowError(string msg)

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:FireflyWindows"
+        xmlns:local="clr-namespace:FireflyWindows" Icon="Fireworks.ico"
         mc:Ignorable="d"
         Title="Firefly" Height="700" Width="1000">
     <Window.Resources>
@@ -15,7 +15,8 @@
         <Color x:Key="ControlNormalColor">#FF000080</Color>
         <Color x:Key="DisabledControlColor">#FFF2F2F2</Color>
         <Color x:Key="DisabledForegroundColor">#FFBFBFBF</Color>
-        <Color x:Key="ControlPressedColor">LimeGreen</Color>
+        <Color x:Key="ControlPressedColor">Green</Color>
+        <SolidColorBrush x:Key="ForegroundBrush">#80C080</SolidColorBrush>
 
         <Style x:Key="TubeStyle" TargetType="Border">
             <Style.Triggers>
@@ -132,6 +133,8 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <Image Grid.RowSpan="3" Source="Fireworks.png" Opacity="0.5"/>
+
         <ItemsControl x:Name="PortList" Background="Transparent" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Row="1">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -140,8 +143,8 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Button Background="Green" Margin="20" Click="OnPortSelected">
-                        <TextBlock Text="{Binding Name}" Margin="50" Foreground="White" />
+                    <Button Background="DarkGreen" Margin="20" Click="OnPortSelected">
+                        <TextBlock Text="{Binding Name}" Margin="50" Foreground="{StaticResource ForegroundBrush}" />
                     </Button>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -155,8 +158,8 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Button Background="Green" Margin="5" Click="OnTubeSelected" Style="{StaticResource TubeButton}" Foreground="White" >
-                        <TextBlock Text="{Binding Name}" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Button Background="DarkGreen" Margin="5" Click="OnTubeSelected" Style="{StaticResource TubeButton}" Foreground="{StaticResource ForegroundBrush}" >
+                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource ForegroundBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Button>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -174,11 +177,11 @@
 
             <!-- buttons -->
             <Button x:Name="StopButton" Grid.Column="1" Width="100" Height="50" Click="OnStopAll" Background="Maroon">
-                <TextBlock Text="STOP" Foreground="White"/>
+                <TextBlock Text="STOP" Foreground="{StaticResource ForegroundBrush}"/>
             </Button>
-            
-            <Button x:Name="AllButton" Grid.Column="2" Width="100" Height="50" Click="OnFireAll" Background="#205020" Foreground="White">
-                <TextBlock Text="ALL" Foreground="White"/>
+
+            <Button x:Name="AllButton" Grid.Column="2" Width="100" Height="50" Click="OnFireAll" Background="#205020" Foreground="{StaticResource ForegroundBrush}">
+                <TextBlock Text="ALL" Foreground="{StaticResource ForegroundBrush}"/>
             </Button>
 
 
