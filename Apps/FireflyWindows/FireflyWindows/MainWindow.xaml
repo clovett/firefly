@@ -190,7 +190,12 @@
         </Grid>
 
         <Border Grid.RowSpan="2" Background="Black" Visibility="Collapsed" x:Name="ErrorShield" >
-            <TextBlock x:Name="ErrorMessage" FontSize="72" Text="Lost Heartbeat" Foreground="Red" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Grid>
+
+                <Image Source="Fireworks.png" Opacity="0.5"/>
+                <TextBlock x:Name="ErrorMessage" FontSize="72" Text="Lost Heartbeat" Foreground="Red" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+            
         </Border>
     </Grid>
 </Window>
