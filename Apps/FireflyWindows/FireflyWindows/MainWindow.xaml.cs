@@ -306,6 +306,8 @@ namespace FireflyWindows
         {
             Button button = (Button)sender;
             Tube tube = (Tube)button.DataContext;
+            tube.Fired = false;
+            tube.Failed = false;
             tube.Firing = true;
             cmds.FireTube(tube);
         }
@@ -340,12 +342,65 @@ namespace FireflyWindows
             }
             else 
             {
-                pattern = new SequentialPattern(cmds, TimeSpan.FromMilliseconds(100));
+                pattern = new SequentialPattern(cmds, TimeSpan.FromMilliseconds(50));
                 //pattern = new CrescendoPattern(cmds);
                 pattern.Start(this.allTubes);
             }
         }
 
         FiringPattern pattern;
+
+        private void OnFireFast(object sender, RoutedEventArgs e)
+        {
+            if (pattern != null && !pattern.Complete)
+            {
+                pattern.Resume();
+            }
+            else
+            {
+                pattern = new SequentialPattern(cmds, TimeSpan.FromMilliseconds(50));
+                pattern.Start(this.allTubes);
+            }
+
+        }
+
+        private void OnFireSlow(object sender, RoutedEventArgs e)
+        {
+            if (pattern != null && !pattern.Complete)
+            {
+                pattern.Resume();
+            }
+            else
+            {
+                pattern = new SequentialPattern(cmds, TimeSpan.FromMilliseconds(250));
+                pattern.Start(this.allTubes);
+            }
+
+        }
+
+        private void OnFireCres(object sender, RoutedEventArgs e)
+        {
+            if (pattern != null && !pattern.Complete)
+            {
+                pattern.Resume();
+            }
+            else
+            {
+                pattern = new CrescendoPattern(cmds);
+                pattern.Start(this.allTubes);
+            }
+        }
+
+        private void OnReset(object sender, RoutedEventArgs e)
+        {
+            StopPattern();
+
+            foreach (var tube in allTubes)
+            {
+                tube.Fired = false;
+                tube.Failed = false;
+                tube.Firing = false;
+            }
+        }
     }
 }

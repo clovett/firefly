@@ -39,11 +39,17 @@ namespace FireflyWindows
         public void Resume()
         {
             stopped = false;
-            Task.Run(new Action(RunThread));
+            if (!threadRunning)
+            {
+                Task.Run(new Action(RunThread));
+            }
         }
+
+        bool threadRunning;
 
         private void RunThread()
         {
+            threadRunning = true;
             while (!stopped)
             {
                 Tube tube = Next();
@@ -57,6 +63,7 @@ namespace FireflyWindows
                 Delay();
                 tube.Firing = false;
             }
+            threadRunning = false;
         }
 
         public virtual Tube Next()
@@ -102,6 +109,7 @@ namespace FireflyWindows
         int pos;
         int sleepStep;
         int nextSleep;
+        int acceleration = 10;
 
         public CrescendoPattern(FireCommands cmds) : base(cmds)
         {
@@ -112,12 +120,17 @@ namespace FireflyWindows
             if (nextSleep == 0)
             {
                 sleepStep = 50;
-                nextSleep = Count * sleepStep;
+                for (int i = 0; i < Count; i++)
+                {
+                    nextSleep += sleepStep;
+                    sleepStep += acceleration;
+                }
             }
 
             if (pos < Count)
             {
                 nextSleep -= sleepStep;
+                sleepStep -= acceleration;
                 return GetTube(pos++);
             }
             return null;
@@ -125,6 +138,7 @@ namespace FireflyWindows
 
         public override void Delay()
         {
+            System.Diagnostics.Debug.WriteLine("Sleeping " + nextSleep);
             Thread.Sleep(nextSleep);
         }
     }
