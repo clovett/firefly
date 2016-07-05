@@ -97,6 +97,7 @@ namespace FireflyWindows
 
         public async Task<FireMessage> Send(FireMessage m, CancellationToken cancellationToken)
         {
+            Debug.WriteLine("Sending command " + m.FireCommand + ", arg1=" + m.Arg1 + ", argm2=" + m.Arg2);
             Exception error = null;
             FireMessage result = await Task.Run(() =>
             {

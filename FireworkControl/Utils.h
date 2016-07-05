@@ -5,7 +5,7 @@
 
 #define MAX_UL 4294967295
 
-#define TIMEOUT_MS 1000
+#define TIMEOUT_MS 3000
 #define VALID_SECONDS 3
 
 int toggleVal(int val);

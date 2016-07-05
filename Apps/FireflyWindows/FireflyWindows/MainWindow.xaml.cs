@@ -1,4 +1,4 @@
-﻿#define DEBUGUI
+﻿//#define DEBUGUI
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -32,16 +32,18 @@ namespace FireflyWindows
         ObservableCollection<Tube> allTubes = new ObservableCollection<Tube>();
         FireCommands cmds = new FireCommands();
         int tubeCount;
-        const int ReadyBeats = 8;
+        const int ReadyBeats = 2;
 
         public MainWindow()
         {
             InitializeComponent();
+            UiDispatcher.Initialize(this.Dispatcher);
+
             PortName.Text = "";
             TubeList.ItemsSource = allTubes;
 
-            heartBeatTimer = new DispatcherTimer(TimeSpan.FromSeconds(0.5), DispatcherPriority.Normal, OnHeartbeatTick, this.Dispatcher);
-            heartBeatTimer.Stop();
+            heartBeatTimer = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, OnHeartbeatTick, this.Dispatcher);
+            Stopheartbeat();
             this.Loaded += OnMainWindowLoaded;
 
             cmds.ResponseReceived += ProcessResponse;
@@ -107,7 +109,7 @@ namespace FireflyWindows
 
         private void OnHeartbeatTick(object sender, EventArgs e)
         {
-            heartBeatTimer.Stop();
+            Stopheartbeat();
             cmds.SendHeartbeat();
         }
 
@@ -118,10 +120,11 @@ namespace FireflyWindows
                 return;
             }
 
+            Debug.WriteLine("Response from : " + m.SentCommand + " is " + m.FireCommand + ", arg1=" + m.Arg1 + ", arg2=" + m.Arg2);
+
             if (m.FireCommand == FireCommand.Error)
             {
                 ShowMessage(m.Error.Message);
-                StartHeartbeat();
             }
             else if (m.FireCommand == FireCommand.Timeout)
             {
@@ -135,7 +138,6 @@ namespace FireflyWindows
                     }
                     // may need to reset the port
                     port.Close();
-                    StartHeartbeat();
                 }
             }
             else
@@ -160,6 +162,8 @@ namespace FireflyWindows
                         break;
                 }
             }
+
+            StartHeartbeat();
         }
 
         int goodHeartBeats;
@@ -188,7 +192,6 @@ namespace FireflyWindows
                     ShowMessage("Heartbeat is failing");
                 }
             }
-            StartHeartbeat();
         }
 
         private void OnLostHeartbeat()
@@ -202,6 +205,7 @@ namespace FireflyWindows
                 badHeartBeats = 0;
                 cmds.Clear();
                 StopPattern();
+                StartHeartbeat();
             }));
         }
 
@@ -304,6 +308,8 @@ namespace FireflyWindows
         {
             Button button = (Button)sender;
             Tube tube = (Tube)button.DataContext;
+            tube.Fired = false;
+            tube.Failed = false;
             tube.Firing = true;
             cmds.FireTube(tube);
         }
@@ -338,11 +344,65 @@ namespace FireflyWindows
             }
             else 
             {
-                pattern = new SequentialPattern(cmds);
-                pattern.Start(this.allTubes, TimeSpan.FromMilliseconds(200));
+                pattern = new SequentialPattern(cmds, TimeSpan.FromMilliseconds(50));
+                //pattern = new CrescendoPattern(cmds);
+                pattern.Start(this.allTubes);
             }
         }
 
         FiringPattern pattern;
+
+        private void OnFireFast(object sender, RoutedEventArgs e)
+        {
+            if (pattern != null && !pattern.Complete)
+            {
+                pattern.Resume();
+            }
+            else
+            {
+                pattern = new SequentialPattern(cmds, TimeSpan.FromMilliseconds(50));
+                pattern.Start(this.allTubes);
+            }
+
+        }
+
+        private void OnFireSlow(object sender, RoutedEventArgs e)
+        {
+            if (pattern != null && !pattern.Complete)
+            {
+                pattern.Resume();
+            }
+            else
+            {
+                pattern = new SequentialPattern(cmds, TimeSpan.FromMilliseconds(250));
+                pattern.Start(this.allTubes);
+            }
+
+        }
+
+        private void OnFireCres(object sender, RoutedEventArgs e)
+        {
+            if (pattern != null && !pattern.Complete)
+            {
+                pattern.Resume();
+            }
+            else
+            {
+                pattern = new CrescendoPattern(cmds);
+                pattern.Start(this.allTubes);
+            }
+        }
+
+        private void OnReset(object sender, RoutedEventArgs e)
+        {
+            StopPattern();
+            pattern = null;
+            foreach (var tube in allTubes)
+            {
+                tube.Fired = false;
+                tube.Failed = false;
+                tube.Firing = false;
+            }
+        }
     }
 }

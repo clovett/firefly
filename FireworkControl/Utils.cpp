@@ -3,9 +3,6 @@
 #include "Utils.h"
 
 unsigned long heartbeatTime = 0;
-unsigned long lastAddedSecondTime = 0;
-unsigned long heartbeatsForSeconds = 0;
-
 bool ready = false;
 
 
@@ -24,15 +21,8 @@ void processHeartbeat(){
 	//if it has been longer than a second since the last beat, set ready to false.
 	if(currentTime - heartbeatTime > TIMEOUT_MS){
 		ready = false;
-		heartbeatsForSeconds = 0;
 	}
 	else{
-		if(currentTime - lastAddedSecondTime > 1000){
-			heartbeatsForSeconds++;
-			lastAddedSecondTime = currentTime;
-		}
-	}
-	if (heartbeatsForSeconds > VALID_SECONDS){
 		ready = true;
 	}
 }

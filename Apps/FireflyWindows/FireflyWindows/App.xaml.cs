@@ -13,5 +13,18 @@ namespace FireflyWindows
     /// </summary>
     public partial class App : Application
     {
+        public App()
+        {
+            this.DispatcherUnhandledException += OnDispatcherUnhandledException;
+        }
+
+        private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            UiDispatcher.RunOnUIThread(() =>
+            {
+                MessageBox.Show(e.ToString(), "Unhandled Exception", MessageBoxButton.OK, MessageBoxImage.Error);
+            });
+            e.Handled = true;
+        }
     }
 }

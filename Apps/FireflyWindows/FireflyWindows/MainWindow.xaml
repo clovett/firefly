@@ -36,8 +36,8 @@
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Path=Fired}" Value="True">
                     <DataTrigger.EnterActions>
-                        <BeginStoryboard >
-                            <Storyboard Name="FiredStory">
+                        <BeginStoryboard Name="FiredStory">
+                            <Storyboard>
                                 <ColorAnimationUsingKeyFrames Storyboard.TargetProperty="(Panel.Background).(SolidColorBrush.Color)">
                                     <EasingColorKeyFrame KeyTime="0" Value="Transparent"  />
                                 </ColorAnimationUsingKeyFrames>
@@ -171,6 +171,8 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <TextBlock x:Name="Messages" Foreground="Maroon" Text="" Margin="10"/>
@@ -180,17 +182,27 @@
                 <TextBlock Text="STOP" Foreground="{StaticResource ForegroundBrush}"/>
             </Button>
 
-            <Button x:Name="AllButton" Grid.Column="2" Width="100" Height="50" Click="OnFireAll" Background="#205020" Foreground="{StaticResource ForegroundBrush}">
-                <TextBlock Text="ALL" Foreground="{StaticResource ForegroundBrush}"/>
+            <Button Grid.Column="2" Width="100" Height="50" Click="OnReset" Background="#205020" Foreground="{StaticResource ForegroundBrush}">
+                <TextBlock Text="RESET" Foreground="{StaticResource ForegroundBrush}"/>
+            </Button>
+            <Button Grid.Column="3" Width="100" Height="50" Click="OnFireSlow" Background="#205020" Foreground="{StaticResource ForegroundBrush}">
+                <TextBlock Text="SLOW" Foreground="{StaticResource ForegroundBrush}"/>
+            </Button>
+            <Button Grid.Column="4" Width="100" Height="50" Click="OnFireCres" Background="#205020" Foreground="{StaticResource ForegroundBrush}">
+                <TextBlock Text="CRES" Foreground="{StaticResource ForegroundBrush}"/>
             </Button>
 
-
-            <TextBlock x:Name="PortName" Grid.Column="3" Foreground="Gray" Text="COM3" Margin="10"/>
+            <TextBlock x:Name="PortName" Grid.Column="5" Foreground="Gray" Text="COM3" Margin="10" VerticalAlignment="Center"/>
 
         </Grid>
 
         <Border Grid.RowSpan="2" Background="Black" Visibility="Collapsed" x:Name="ErrorShield" >
-            <TextBlock x:Name="ErrorMessage" FontSize="72" Text="Lost Heartbeat" Foreground="Red" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Grid>
+
+                <Image Source="Fireworks.png" Opacity="0.5"/>
+                <TextBlock x:Name="ErrorMessage" FontSize="72" Text="Lost Heartbeat" Foreground="Red" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+            
         </Border>
     </Grid>
 </Window>
