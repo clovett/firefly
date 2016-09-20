@@ -3,11 +3,18 @@ from Queue import Queue
 from threading import Thread
 import time
 
-class connection(object):
-    def __init__(self, tcp_conn):
+class Connection(object):
+    def __init__(self, con, addr):
+        self.remote_addr = addr
         self._tcp_conn = tcp_conn
         self._incoming_queue = Queue()
         self._closed = False
+
+    def __eq__(self, other):
+        if self.remote_addr == other.remote_addr:
+            return True
+        else:
+            return False
 
     def _listen_thread(self):
         while not self._closed:
@@ -30,96 +37,75 @@ class connection(object):
         self._tcp_conn.close()
 
 
-class network(object):
-    def __init__(self, is_master = False):
-        self._is_master = is_master
-        self._connection_list = []
-        self._message_queue = Queue()
+NODE_LISTEN_PORT = 8008
 
-        if self._is_master:
-            self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server.listen(5)
-
+class Client(object):
     """
-    return true if connected to at least one other instance of network
+    Blocking init to establish connection with server
     """
-    def connected(self):
-        return len(self._connection_list) > 0
-
-    """
-    Block until connected to master, or if master, do a non-blocking check for
-    nodes that are note yet in the connection list.
-    """
-    def connect(self):
-        if self._is_master:
-            self._master_connect()
-        else:
-            self._node_connect()
-
-    """
-    send a message with the master server information
-    """
-    def master_broadcast(self):
-        pass
-
-
-    def _master_connect(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind(('', self.MASTER_LISTEN_PORT))
-        sock.settimeout(1)
-
-        try:
-            data, (ip, port) = sock.recvfrom(1024)
-        except socket.timeout:
-            pass
-        else:
-            if data == self.NODE_CONNECTION_MSG:
-                tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                tcp_sock.connect((ip, self.NODE_SERVER_PORT))
-
-                #set the connection for that ip to the tcp connection
-                print "new connection", tcp_sock
-                self._connection_list[ip] = tcp_sock
-        finally:
-            sock.close()
-
-
-    def _node_connect(self):
-        if not self.connected():
-            udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
-            tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            node_addr = tcp_sock.bind(('', self.NODE_SERVER_PORT))
-            tcp_sock.listen(5)
-            tcp_sock.settimeout(1)
-
-            done = False
-            while not done:
-                udp_sock.sendto(self.NODE_CONNECTION_MSG, ('255.255.255.255', self.MASTER_LISTEN_PORT))
-                try:
-                    sock, (ip, port) = tcp_sock.accept()
-                except socket.timeout:
-                    pass
-                else:
-                    done = True
-                    self._connection_list[ip] = tcp_sock
-
-    """
-    Send the message to the master, or if is_master send to the given destination.
-    If is_master and dest is none raise value error
-    """
-    def send(self, msg, dest=None):
-        #check to see if we have any valid connections raise an error if none
-
-        #
+    def __init__(self):
         pass
 
     """
-    returns the oldest message in the queue, or none if the queue is empty.
+    Send the given data out over the connection
+    """
+    def send(self, data):
+        pass
+
+    """
+    Fetch and return the lastest data from the connection
     """
     def receive(self):
-        return self._message_queue.get()
+        pass
+
+
+class Server(object):
+    def __init__(self):
+        self._closed = False
+
+        #setup the server
+        self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._server.bind((socket.gethostname(), 0))
+        self._server.listen(5)
+
+        #start the server connection thread
+        self.connections = []
+        self._connection_thread = Thread(target=self._connection_loop)
+        self._connection_thread.start()
+
+        #start the broadcast thread
+        self._broadcast_thread = Thread(target=self._broadcast_loop)
+        self._broadcast_thread.start()
+
+
+    def send_to(self, data, connection):
+        pass
+
+    """
+    Fetch and return the lastest data from the given connection
+    """
+    def receive(self, connection):
+        pass
+
+    """
+    Thread for accepting incomming connections.
+    """
+    def _connection_loop(self):
+        while not self._closed:
+            con, addr = self._server.accept()
+            new_connection = Connection(con, addr)
+            if new_connection not in self.connections:
+                self.connections.append(new_connection)
+
+    """
+    Send out the server information at a regular period
+    """
+    def _broadcast_loop(self):
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        while not self._closed:
+            udp_socket.send_to(self._server.getsockname(), ("255.255.255.255", NODE_LISTEN_PORT))
+            time.sleep(0.25)
+
 
 if __name__ == "__main__":
-    net = network(is_master=False)
+    s = Server()
