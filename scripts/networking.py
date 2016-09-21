@@ -38,18 +38,12 @@ class Connection(object):
             self.close()
             return 0
 
-    def receive(self, no_wait=False):
+    def receive(self):
         data = None
-        if no_wait:
-            try:
-                data = self._incoming_queue.get_nowait()
-            except Empty:
-                pass
-        else:
-            try:
-                data = self._incoming_queue.get(timeout=1)
-            except Empty:
-                pass
+        try:
+            data = self._incoming_queue.get(timeout=0.1)
+        except Empty:
+            pass
         return data
 
     def is_closed(self):
@@ -149,7 +143,7 @@ class Server(object):
     Fetch and return the lastest data from the given connection
     """
     def receive(self, connection):
-        return connection.receive(no_wait=True)
+        return connection.receive()
 
     """
     Shutdown the server and signal to all the connections that they need to close.
@@ -190,6 +184,3 @@ class Server(object):
 
         print "halting broadcast loop"
         udp_socket.close()
-
-if __name__ == "__main__":
-    s = Server()
