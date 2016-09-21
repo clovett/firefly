@@ -32,7 +32,11 @@ class Connection(object):
                 self._incoming_queue.put(data)
 
     def send(self, data):
-        return self._tcp_conn.send(data)
+        try:
+            return self._tcp_conn.send(data)
+        except Exception:
+            self.close()
+            return 0
 
     def receive(self, no_wait=False):
         data = None
@@ -139,12 +143,7 @@ class Server(object):
 
 
     def send_to(self, data, connection):
-        try:
-            return connection.send(data)
-        except:
-            print "connection", connection, "died, removing from list"
-            connection.close()
-            self.connections.remove(connection)
+        return connection.send(data)
 
     """
     Fetch and return the lastest data from the given connection
