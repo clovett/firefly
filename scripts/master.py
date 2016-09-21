@@ -15,6 +15,11 @@ class master(object):
                 for con in self.server.connections:
                     msg = "hello at time:" + str(time.time())
                     self.server.send_to(msg, con)
+
+                    incoming = con.receive()
+                    if incoming is not None:
+                        print incoming, "received from", con
+
             time.sleep(1)
 
 

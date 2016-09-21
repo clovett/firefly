@@ -90,7 +90,7 @@ class Client(object):
     Fetch and return the lastest data from the connection
     """
     def receive(self):
-        return self._connection.receive(no_wait=True)
+        return self._connection.receive()
 
     """
     If no connection is found listen for broadcasts from a server.
@@ -150,8 +150,11 @@ class Server(object):
     Fetch and return the lastest data from the given connection
     """
     def receive(self, connection):
-        return connection.receive()
+        return connection.receive(no_wait=True)
 
+    """
+    Shutdown the server and signal to all the connections that they need to close.
+    """
     def close(self):
         self._closed = True
         for con in self.connections:
