@@ -1,5 +1,5 @@
 import socket, errno
-from Queue import Queue
+from Queue import Queue, Empty
 from threading import Thread
 import struct
 import time
@@ -23,11 +23,12 @@ class Connection(object):
         else:
             return False
 
-
     def _listen_loop(self):
         while not self._closed:
             data = self._tcp_conn.recv(4096)
-            if data is not None:
+            if data is None or len(data) == 0:
+                self.close()
+            else:
                 self._incoming_queue.put(data)
 
     def send(self, data):
@@ -36,16 +37,23 @@ class Connection(object):
     def receive(self, no_wait=False):
         data = None
         if no_wait:
-            data = self._incoming_queue.get_nowait()
+            try:
+                data = self._incoming_queue.get_nowait()
+            except Empty:
+                pass
         else:
-            data = self._incoming_queue.get()
-
+            try:
+                data = self._incoming_queue.get(timeout=1)
+            except Empty:
+                pass
         return data
+
+    def is_closed(self):
+        return self._closed
 
     def close(self):
         self._closed = True
         self._tcp_conn.close()
-
 
 NODE_LISTEN_PORT = 8008
 BROADCAST_FORMAT_STRING = '15si'
@@ -67,9 +75,10 @@ class Client(object):
         self._closed = True
         if self._connection is not None:
             self._connection.close()
+            self._connection = None
 
     def connected(self):
-        return self._connection != None
+        return self._connection != None and not self._connection.is_closed()
 
     """
     Send the given data out over the connection
@@ -81,7 +90,7 @@ class Client(object):
     Fetch and return the lastest data from the connection
     """
     def receive(self):
-        return self._connection.receive()
+        return self._connection.receive(no_wait=True)
 
     """
     If no connection is found listen for broadcasts from a server.
@@ -91,15 +100,18 @@ class Client(object):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.bind(("", NODE_LISTEN_PORT))
         while not self._closed:
-            if self._connection == None:
+            if self._connection == None or self._connection.is_closed():
                 data = udp_socket.recv(4096)
                 host, port = struct.unpack(BROADCAST_FORMAT_STRING, data)
                 host = host.strip('\x00')
                 tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-                tcp_socket.connect((host, port))
-                self._connection = Connection(tcp_socket, (host, port))
-
+                try:
+                    tcp_socket.connect((host, port))
+                except Exception:
+                    pass
+                else:
+                    self._connection = Connection(tcp_socket, (host, port))
             else:
                 time.sleep(1)
 
@@ -129,18 +141,22 @@ class Server(object):
     def send_to(self, data, connection):
         try:
             return connection.send(data)
-        except socket.error, v:
-            errorCode = v[0]
-            if errorCode == errno.EPIPE:
-                print "connection", connection, "died, removing from list"
-                connection.close()
-                self.connections.remove(connection)
+        except:
+            print "connection", connection, "died, removing from list"
+            connection.close()
+            self.connections.remove(connection)
 
     """
     Fetch and return the lastest data from the given connection
     """
     def receive(self, connection):
         return connection.receive()
+
+    def close(self):
+        self._closed = True
+        for con in self.connections:
+            con.close()
+        self._server.close()
 
     """
     Thread for accepting incomming connections.
@@ -152,6 +168,11 @@ class Server(object):
             print "new connection:", new_connection
             if new_connection not in self.connections:
                 self.connections.append(new_connection)
+
+            #check the list of connections and remove any that have closed
+            for con in self.connections:
+                if con.is_closed():
+                    self.connections.remove(con)
 
     """
     Send out the server information at a regular period
@@ -165,6 +186,8 @@ class Server(object):
             udp_socket.sendto(msg, ("255.255.255.255", NODE_LISTEN_PORT))
             time.sleep(1)
 
+        print "halting broadcast loop"
+        udp_socket.close()
 
 if __name__ == "__main__":
     s = Server()

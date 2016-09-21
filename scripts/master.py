@@ -22,4 +22,7 @@ class master(object):
 if __name__ == "__main__":
     print "running main program"
     m = master()
-    m.loop()
+    try:
+        m.loop()
+    except KeyboardInterrupt:
+        m.server.close()
