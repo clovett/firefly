@@ -30,4 +30,5 @@ if __name__ == "__main__":
     try:
         m.loop()
     except KeyboardInterrupt:
+        print "halting server"
         m.server.close()

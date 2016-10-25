@@ -56,6 +56,7 @@ class Connection(object):
         return self._closed
 
     def close(self):
+        print "Network.Connection: Closing connection", self
         self._closed = True
         self._tcp_conn.close()
 
@@ -72,7 +73,6 @@ class Client(object):
 
         #start the connection management loop
         self._connection_thread = Thread(target=self._connection_loop)
-        self._connection_thread.daemon = True
         self._connection_thread.start()
 
     def close(self):
@@ -102,6 +102,7 @@ class Client(object):
     """
     def _connection_loop(self):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         udp_socket.bind(("", NODE_LISTEN_PORT))
         while not self._closed:
             if self._connection == None or self._connection.is_closed():
@@ -127,18 +128,17 @@ class Server(object):
 
         #setup the server
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._server.settimeout(1)
         self._server.bind((socket.gethostname(), 0))
         self._server.listen(5)
 
         #start the server connection thread
         self.connections = []
         self._connection_thread = Thread(target=self._connection_loop)
-        self._connection_thread.daemon = True
         self._connection_thread.start()
 
         #start the broadcast thread
         self._broadcast_thread = Thread(target=self._broadcast_loop)
-        self._broadcast_thread.daemon = True
         self._broadcast_thread.start()
 
 
@@ -165,16 +165,21 @@ class Server(object):
     """
     def _connection_loop(self):
         while not self._closed:
-            con, addr = self._server.accept()
-            new_connection = Connection(con, addr)
-            print "new connection:", new_connection
-            if new_connection not in self.connections:
-                self.connections.append(new_connection)
+            try:
+                con, addr = self._server.accept()
+            except:
+                pass
+            else:
+                new_connection = Connection(con, addr)
+                print "new connection:", new_connection
+                if new_connection not in self.connections:
+                    self.connections.append(new_connection)
 
             #check the list of connections and remove any that have closed
             for con in self.connections:
                 if con.is_closed():
                     self.connections.remove(con)
+        print "Networking.Server: halting connection loop"
 
     """
     Send out the server information at a regular period
@@ -188,7 +193,7 @@ class Server(object):
             udp_socket.sendto(msg, ("255.255.255.255", NODE_LISTEN_PORT))
             time.sleep(1)
 
-        print "halting broadcast loop"
+        print "Network.Server: halting broadcast loop"
         udp_socket.close()
 
 if __name__ == "__main__":
