@@ -4,6 +4,11 @@ import time
 class sim_node(object):
     def __init__(self):
         self.client = Client()
+        self.num_tubes = 15
+        self.tube_state = [] #0 = unloaded, 1 = loaded, 2->255 = errorcode
+        for i in range(num_tubes):
+            self.tube_state.append(0)
+
 
 def main(sim, start_time):
     data = None
