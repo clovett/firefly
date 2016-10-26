@@ -8,11 +8,11 @@ class Connection(object):
     def __init__(self, con, addr):
         self.remote_addr = addr
         self._tcp_conn = con
+        self._tcp_conn.settimeout(1)
         self._incoming_queue = Queue()
         self._closed = False
 
         self._listen_thread = Thread(target=self._listen_loop)
-        self._listen_thread.daemon = True
         self._listen_thread.start()
 
     def __eq__(self, other):
@@ -25,11 +25,15 @@ class Connection(object):
 
     def _listen_loop(self):
         while not self._closed:
-            data = self._tcp_conn.recv(4096)
-            if data is None or len(data) == 0:
-                self.close()
+            try:
+                data = self._tcp_conn.recv(4096)
+            except:
+                pass
             else:
-                self._incoming_queue.put(data)
+                if data is None or len(data) == 0:
+                    self.close()
+                else:
+                    self._incoming_queue.put(data)
 
     def send(self, data):
         try:
@@ -103,20 +107,26 @@ class Client(object):
     def _connection_loop(self):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        udp_socket.settimeout(1)
         udp_socket.bind(("", NODE_LISTEN_PORT))
+
         while not self._closed:
             if self._connection == None or self._connection.is_closed():
-                data = udp_socket.recv(4096)
-                host, port = struct.unpack(BROADCAST_FORMAT_STRING, data)
-                host = host.strip('\x00')
-                tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
                 try:
-                    tcp_socket.connect((host, port))
-                except Exception:
+                    data = udp_socket.recv(4096)
+                except:
                     pass
                 else:
-                    self._connection = Connection(tcp_socket, (host, port))
+                    host, port = struct.unpack(BROADCAST_FORMAT_STRING, data)
+                    host = host.strip('\x00')
+                    tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+                    try:
+                        tcp_socket.connect((host, port))
+                    except Exception:
+                        pass
+                    else:
+                        self._connection = Connection(tcp_socket, (host, port))
             else:
                 time.sleep(1)
 
