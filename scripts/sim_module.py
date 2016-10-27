@@ -66,6 +66,9 @@ class Tubes(object):
 
 
 class SimNode(object):
+
+    START_BYTE = 0xFE
+
     def __init__(self):
         self.client = Client()
         self.tubes = Tubes(15)
@@ -111,29 +114,34 @@ class SimNode(object):
     incoming message.
     """
     def handle(self, incoming):
+        #handler reads the address, payload length, string and calcs the crc
+        #then passes the payload to the relevent method to parse and act
+
+        start_byte = struct.unpack_from("B", incoming)
+
         messages_dir = {
-                    "REQUEST_REPORT":,
-                    "SET_LED":,
-                    "FIRE_TUBE":,
+                    "REQUEST_REPORT":self._request_report,
+                    "SET_LED":self._set_led,
+                    "FIRE_TUBE":self._fire_tube,
                     "HEARTBEAT":self._heartbeat,
                     "RESPONSE":self._response
         }
         pass
 
     def _fire_tube(self, incoming):
-        pass
+        print "in fire tube"
 
     def _response(self, incoming):
-        pass
+        print "in response"
 
     def _request_report(self, incoming):
-        pass
+        print "in request report"
 
     def _set_led(self, incoming):
-        pass
+        print "in set led"
 
     def _heartbeat(self, incoming):
-        pass
+        print "in heartbeat"
 
     """
     Update the state of the tubes. For the simulation all this will do is
@@ -194,6 +202,9 @@ def test_update_tubes(sim):
         done = sim.tubes.get_num_empty() == 0
 
 if __name__ == "__main__":
+    heartbeat_msg = struct.pack("BH9s", 0xFE, ,"HEARTBEAT" )
+
+
     try:
         #main()
         sim = SimNode()
