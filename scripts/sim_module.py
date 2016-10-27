@@ -3,6 +3,7 @@ import struct
 import random
 import time
 
+
 class Tubes(object):
     def __init__(self, num_tubes):
         self.num_tubes = num_tubes
@@ -78,32 +79,69 @@ class SimNode(object):
         #extra trackers for internal use only
         self._time_since_Fire = pow(2, 32) - 1
         self._LOAD_DELAY_S = 10
-        self._TIME_BETWEEN_LOADS = 0.1
+        self._TIME_BETWEEN_LOADS_S = 0.1
         self._last_load_time = time.time()
 
     #what do we have to do?
     def main(self):
         #we need to check the state of the tubes and update tube_state
-        self.update_tubes()
+        #for the simulation we are going to just assume that the tubes get
+        #reloaded at some rate some time after the last fire command.
+        self._update_tubes()
 
         #we need to check for and handle new messages
         if self.client.connected():
             incoming = self.client.receive()
             self.handle(incoming)
 
+    def main_loop(self):
+        done = False
+        while not done:
+            try:
+                self.main()
+            except KeyboardInterrupt:
+                done = True
+                self.close()
+            else:
+                pass
+
     """
-    Given an incoming message in bytes, decode the message and call the relevent handler
+    Given an incoming message in bytes, decode the message and call the relevent handler.
+    This is done using a dict of functions keyed to the relevent bits of the
+    incoming message.
     """
     def handle(self, incoming):
+        messages_dir = {
+                    "REQUEST_REPORT":,
+                    "SET_LED":,
+                    "FIRE_TUBE":,
+                    "HEARTBEAT":self._heartbeat,
+                    "RESPONSE":self._response
+        }
+        pass
+
+    def _fire_tube(self, incoming):
+        pass
+
+    def _response(self, incoming):
+        pass
+
+    def _request_report(self, incoming):
+        pass
+
+    def _set_led(self, incoming):
+        pass
+
+    def _heartbeat(self, incoming):
         pass
 
     """
     Update the state of the tubes. For the simulation all this will do is
     check for unloaded tubes and load a random tube.
     """
-    def update_tubes(self):
+    def _update_tubes(self):
         if self._time_since_Fire > self._LOAD_DELAY_S:
-            if time.time() - self._last_load_time > self._TIME_BETWEEN_LOADS:
+            if time.time() - self._last_load_time > self._TIME_BETWEEN_LOADS_S:
                 if self.tubes.get_num_empty() > 0:
                     tube_num = random.choice(self.tubes.get_empty_tubes())
                     self.tubes.load_tube(tube_num)
