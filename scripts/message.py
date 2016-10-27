@@ -1,4 +1,5 @@
 import struct
+from utils import calc_crc16
 
 """
 Messages must be able to:
@@ -19,15 +20,15 @@ The message class should not be used directly, and simply provides methods for
 checking the start bytes and CRC's of incoming messages, and packing outgoing
 messages.
 """
-class _Message(object):
+class Message(object):
 
     START_BYTE = 0xFE
 
-    def __init__(self, **kwargs):
-        self.parse()
+    def __init__(self):
+        self.id = "MESSAGE"
 
-    def parse(self):
-        raise NotImplementedError
+    def get_message_id(self):
+        return self.id
 
     def pack(self):
         payload = self._pack_payload()
@@ -37,7 +38,7 @@ class _Message(object):
         message += payload
 
         #calc the crc for the outgoing message
-        crc = self._calc_crc16(message)
+        crc = calc_crc16(message)
         message += struct.pack("H", crc)
 
         return message
@@ -45,29 +46,73 @@ class _Message(object):
     def _pack_payload(self):
         raise NotImplementedError
 
-    def _calc_crc16(self, message):
-        CRC16_POLYNOM = 0x2F15
-        CRC_SEED = 0x0000
-        crc = CRC_SEED
+class MsgHeartbeat(Message):
+    def __init__(self):
+        self.id = "HEARTBEAT"
 
-        for b in message:
-            c = int(b.encode('hex'), base=16)
-            crc ^= (c << 8)
-            for i in range(8):
-                if (crc & 0x8000) != 0:
-                     crc = (crc << 1) ^ CRC16_POLYNOM
-                else:
-                    crc = crc << 1
-                crc = crc & 0xFFFF
-        return crc
+    def _pack_payload(self):
+        return struct.pack("9s", self.id)
 
-class MsgHeartbeat(_Message):
-    pass
+class MsgRequestReport(Message):
+    def __init__(self):
+        self.id = "REQUEST_REPORT"
+
+    def _pack_payload(self):
+        return struct.pack("14s", self.id)
+
+class MsgResponse(Message):
+    def __init__(self, isAck, flags):
+        self.id = "RESPONSE"
+        self.isAck = isAck
+        self.flags = flags
+
+    def _pack_payload(self):
+        return struct.pack("8sBI", self.id, self.isAck, self.flags)
+
+class MsgSetLED(Message):
+    def __init__(self, red, green, blue):
+        self.id = "SET_LED"
+        self.red = red
+        self.green = green
+        self.blue = blue
+
+    def _pack_payload(self):
+        return struct.pack("7s3B", self.id, self.red, self.green, self.blue)
+
+class MsgFireTubeNum(Message):
+    def __init__(self, tube_number):
+        self.id = "FIRE_TUBE"
+        self.tube_number = tube_number
+
+    def _pack_payload(self):
+        return struct.pack("9sB", self.id, self.tube_number)
+
+class MsgReport(Message):
+    def __init__(self, num_tubes, tube_state, led_color, time_since_HB):
+        self.id = "REPORT"
+        self.num_tubes = num_tubes
+        self.tube_state = tube_state #array length num_tubes
+        self.led_color = led_color #(R, G, B)
+        self.time_since_HB = time_since_HB
+
+    def _pack_payload(self):
+        msg = struct.pack('6sB', self.id, self.num_tubes)
+        for s in self.tube_state:
+            msg += struct.pack('B', s)
+
+        for c in self.led_color:
+            msg += struct.pack('B', c)
+
+        msg += struct.pack('I', self.time_since_HB)
+        return msg
 
 def print_in_hex(message):
     string = str(message)
     print ':'.join(x.encode('hex') for x in string)
 
 if __name__ == "__main__":
-    test_msg = _Message()
-    print_in_hex(test_msg.pack())
+    hb_test = MsgHeartbeat()
+    print_in_hex(hb_test.pack())
+
+
+    test_msg = Message()
