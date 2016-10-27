@@ -1,6 +1,17 @@
 import struct
 
 
+
+class ActionHandler(object):
+    def __init__(self):
+        self.actions = {}
+
+    def add_action(self, action, key):
+        self.actions[key] = action
+
+    def do_action(self, key, args):
+        self.actions[key](args)
+
 def calc_crc16(message):
     CRC16_POLYNOM = 0x2F15
     CRC_SEED = 0x0000
@@ -18,8 +29,10 @@ def calc_crc16(message):
     return crc
 
 def unpack(message):
-    pass
+    START_BYTE = 0xFE
     #check for the correct start byte
+    first_byte = struck.unpack_from("B", message)
+    print first_byte == START_BYTE
 
     #read the length
 

@@ -1,5 +1,5 @@
 import struct
-from utils import calc_crc16
+from utils import *
 
 """
 Messages must be able to:
@@ -112,7 +112,9 @@ def print_in_hex(message):
 
 if __name__ == "__main__":
     hb_test = MsgHeartbeat()
-    print_in_hex(hb_test.pack())
+    packed_hb = hb_test.pack()
+    print_in_hex(packed_hb)
 
+    unpack(packed_hb)
 
     test_msg = Message()
