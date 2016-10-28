@@ -1,8 +1,9 @@
 from networking import Client
+import message
+import utils
 import struct
 import random
 import time
-
 
 class Tubes(object):
     def __init__(self, num_tubes):
@@ -79,6 +80,15 @@ class SimNode(object):
         #create a counter for the HB time
         self.time_since_HB = pow(2, 32) - 1
 
+        #create an action handler for acting on incoming messages
+        self.actions = utils.ActionHandler()
+        self.actions.add_action("REQUEST_REPORT", self._request_report)
+        self.actions.add_action("SET_LED", self._set_led)
+        self.actions.add_action("FIRE_TUBE", self._fire_tube)
+        self.actions.add_action("HEARTBEAT", self._heartbeat)
+        self.actions.add_action("RESPONSE", self._response)
+        self.actions.add_action("REPORT", self._report)
+
         #extra trackers for internal use only
         self._time_since_Fire = pow(2, 32) - 1
         self._LOAD_DELAY_S = 10
@@ -97,17 +107,6 @@ class SimNode(object):
             incoming = self.client.receive()
             self.handle(incoming)
 
-    def main_loop(self):
-        done = False
-        while not done:
-            try:
-                self.main()
-            except KeyboardInterrupt:
-                done = True
-                self.close()
-            else:
-                pass
-
     """
     Given an incoming message in bytes, decode the message and call the relevent handler.
     This is done using a dict of functions keyed to the relevent bits of the
@@ -116,32 +115,36 @@ class SimNode(object):
     def handle(self, incoming):
         #handler reads the address, payload length, string and calcs the crc
         #then passes the payload to the relevent method to parse and act
+        msg_id, payload = message.unpack(incoming)
+        self.actions.do_action(msg_id, payload)
 
-        start_byte = struct.unpack_from("B", incoming)
-
-        messages_dir = {
-                    "REQUEST_REPORT":self._request_report,
-                    "SET_LED":self._set_led,
-                    "FIRE_TUBE":self._fire_tube,
-                    "HEARTBEAT":self._heartbeat,
-                    "RESPONSE":self._response
-        }
-        pass
-
+    """
+    Each of the "handler methods" below are for internal use only and are used
+    to orginize the behivors that are linked to each incoming message type.
+    """
     def _fire_tube(self, incoming):
         print "in fire tube"
+        utils.print_in_hex(incoming)
 
     def _response(self, incoming):
         print "in response"
+        utils.print_in_hex(incoming)
 
     def _request_report(self, incoming):
         print "in request report"
+        utils.print_in_hex(incoming)
 
     def _set_led(self, incoming):
         print "in set led"
+        utils.print_in_hex(incoming)
 
     def _heartbeat(self, incoming):
         print "in heartbeat"
+        utils.print_in_hex(incoming)
+
+    def _report(self, incoming):
+        print "in report"
+        utils.print_in_hex(incoming)
 
     """
     Update the state of the tubes. For the simulation all this will do is
@@ -155,63 +158,29 @@ class SimNode(object):
                     self.tubes.load_tube(tube_num)
                     self._last_load_time = time.time()
 
-    def _generate_report(self):
-        report = struct.pack("6s", "REPORT")
-        report += self.tubes.get_packed_tubes()
-        report += struct.pack("3BI", self.led_color[0], self.led_color[1], self.led_color[2], self.time_since_HB)
-        return report
-
     def close(self):
         self.client.close()
 
-#networking test function
-def main():
-    start_time = time.time()
-    print "starting sim_node"
-    sim = SimNode()
-    done = False
-    while not done:
-        try:
-            data = None
-            if sim.client.connected():
-                data = sim.client.receive()
-                if data is not None:
-                    print data
-
-                if time.time() - start_time > 0.1:
-                    start_time = time.time()
-                    msg = "boop"
-                    sim.client.send(msg)
-        except KeyboardInterrupt:
-            done = True
-            sim.client.close()
-    print "exited main loop"
-
-
-def test_report(sim):
-    report = sim._generate_report()
-    print report
-    print ':'.join(x.encode('hex') for x in report)
-
-def test_update_tubes(sim):
-    done = False
-    while not done:
-        sim.update_tubes()
-        print sim.tubes
-        time.sleep(0.1)
-        done = sim.tubes.get_num_empty() == 0
-
 if __name__ == "__main__":
-    heartbeat_msg = struct.pack("BH9s", 0xFE, ,"HEARTBEAT" )
+    sim = SimNode()
 
+    hb = message.MsgHeartbeat().pack()
+    rqrep = message.MsgRequestReport().pack()
+    resp = message.MsgResponse(1, 12).pack()
+    led = message.MsgSetLED(123, 21, 56).pack()
+    fire = message.MsgFireTubeNum(14).pack()
+    report = message.MsgReport(15, [1]*15, (126,53,168), 1014).pack()
 
+    messages = [hb, rqrep, resp, led, fire, report]
+    for m in messages:
+        sim.handle(m)
+
+    sim.close()
+    """
     try:
-        #main()
-        sim = SimNode()
-        test_report(sim)
-        test_update_tubes(sim)
-        sim.close()
+        sim.run()
     except KeyboardInterrupt:
         sim.close()
     else:
         pass
+    """

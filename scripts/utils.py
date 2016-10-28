@@ -1,10 +1,15 @@
 import struct
 
+"""
+A simple wrapper class for a dict of methods.
+The idea is to be able to switch between a number of behivors based
+on a common input in a more readable way than a naked dict.
+"""
 class ActionHandler(object):
     def __init__(self):
         self.actions = {}
 
-    def add_action(self, action, key):
+    def add_action(self, key, action):
         self.actions[key] = action
 
     def do_action(self, key, args):

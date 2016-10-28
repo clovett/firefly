@@ -80,8 +80,6 @@ class MsgHeartbeat(Message):
         self.id = "HEARTBEAT\0"
 
     def _pack_payload(self):
-        print len(self.id)
-        print type(self.id)
         return struct.pack("=10s", self.id)
 
 class MsgRequestReport(Message):
@@ -139,8 +137,12 @@ class MsgReport(Message):
 
 if __name__ == "__main__":
     hb_test = MsgFireTubeNum(5)
+    report_test = MsgReport(15, [1]*15, (126,53,168), 1014)
+
     packed_hb = hb_test.pack()
+    packed_report = report_test.pack()
 
     print unpack(packed_hb)
+    print unpack(packed_report)
 
     test_msg = Message()
