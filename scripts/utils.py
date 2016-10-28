@@ -1,7 +1,5 @@
 import struct
 
-
-
 class ActionHandler(object):
     def __init__(self):
         self.actions = {}
@@ -28,16 +26,18 @@ def calc_crc16(message):
             crc = crc & 0xFFFF
     return crc
 
-def unpack(message):
-    START_BYTE = 0xFE
-    #check for the correct start byte
-    first_byte = struck.unpack_from("B", message)
-    print first_byte == START_BYTE
+def print_in_hex(message):
+    string = str(message)
+    print ':'.join(x.encode('hex') for x in string)
 
-    #read the length
+def get_string(buf):
+    string = ""
+    for c in buf:
+        if c == '\0':
+            break
+        else:
+            string += c
+    return string
 
-
-    #check that the crc is correct
-
-
-    #based on the message id do the correct action
+if __name__=="__main__":
+    print "utils.py"
