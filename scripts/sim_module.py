@@ -78,7 +78,7 @@ class SimNode(object):
         self.led_color = (255, 255, 255)
 
         #create a counter for the HB time
-        self.time_since_HB = pow(2, 32) - 1
+        self.last_hb_time = 0
 
         #create an action handler for acting on incoming messages
         self.actions = utils.ActionHandler()
@@ -94,6 +94,9 @@ class SimNode(object):
         self._LOAD_DELAY_S = 10
         self._TIME_BETWEEN_LOADS_S = 0.1
         self._last_load_time = time.time()
+
+    def time_since_HB(self):
+        return time.time() - self.last_hb_time()
 
     #what do we have to do?
     def main(self):
@@ -115,8 +118,13 @@ class SimNode(object):
     def handle(self, incoming):
         #handler reads the address, payload length, string and calcs the crc
         #then passes the payload to the relevent method to parse and act
-        msg_id, payload = message.unpack(incoming)
-        self.actions.do_action(msg_id, payload)
+        try:
+            msg_id, payload = message.unpack(incoming)
+        except ValueError:
+            #send a nack to the master indicating that the message was not parsed
+            self.client.send(message.MsgResponse(0, 2))
+        else:
+            self.actions.do_action(msg_id, payload)
 
     """
     Each of the "handler methods" below are for internal use only and are used
@@ -125,22 +133,26 @@ class SimNode(object):
     def _fire_tube(self, incoming):
         print "in fire tube"
         utils.print_in_hex(incoming)
+        msg_id, tube_number = struct.unpack("=10sB", incoming)
 
     def _response(self, incoming):
         print "in response"
         utils.print_in_hex(incoming)
+        msg_id, response, flags = struct.unpack("=9sBI", incoming)
 
     def _request_report(self, incoming):
         print "in request report"
         utils.print_in_hex(incoming)
 
     def _set_led(self, incoming):
-        print "in set led"
         utils.print_in_hex(incoming)
+        msg_id, red, green, blue = struct.unpack("=8s3B", incoming)
+        print "in set led", red, green, blue
 
     def _heartbeat(self, incoming):
         print "in heartbeat"
         utils.print_in_hex(incoming)
+        self.last_hb_time = time.time()
 
     def _report(self, incoming):
         print "in report"
