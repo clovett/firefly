@@ -69,6 +69,7 @@ class Tubes(object):
 class SimNode(object):
 
     START_BYTE = 0xFE
+    TIME_OUT_S = 1
 
     def __init__(self):
         self.client = Client()
@@ -90,7 +91,7 @@ class SimNode(object):
         self.actions.add_action("REPORT", self._report)
 
         #extra trackers for internal use only
-        self._time_since_Fire = pow(2, 32) - 1
+        self._time_since_fire = pow(2, 32) - 1
         self._LOAD_DELAY_S = 10
         self._TIME_BETWEEN_LOADS_S = 0.1
         self._last_load_time = time.time()
@@ -100,15 +101,19 @@ class SimNode(object):
 
     #what do we have to do?
     def main(self):
-        #we need to check the state of the tubes and update tube_state
-        #for the simulation we are going to just assume that the tubes get
-        #reloaded at some rate some time after the last fire command.
-        self._update_tubes()
+        while True:
+            #we need to check the state of the tubes and update tube_state
+            #for the simulation we are going to just assume that the tubes get
+            #reloaded at some rate some time after the last fire command.
+            self._update_tubes()
 
-        #we need to check for and handle new messages
-        if self.client.connected():
-            incoming = self.client.receive()
-            self.handle(incoming)
+            #we need to check for and handle new messages
+            if self.client.connected():
+                incoming = self.client.receive()
+                if incoming is not None:
+                    self.handle(incoming)
+            else:
+                time.sleep(0.5)
 
     """
     Given an incoming message in bytes, decode the message and call the relevent handler.
@@ -122,7 +127,7 @@ class SimNode(object):
             msg_id, payload = message.unpack(incoming)
         except ValueError:
             #send a nack to the master indicating that the message was not parsed
-            self.client.send(message.MsgResponse(0, 2))
+            self.client.send(message.MsgResponse(0, 4).pack())
         else:
             self.actions.do_action(msg_id, payload)
 
@@ -135,6 +140,20 @@ class SimNode(object):
         utils.print_in_hex(incoming)
         msg_id, tube_number = struct.unpack("=10sB", incoming)
 
+        if self.time_since_HB < self.TIME_OUT_S:
+            if tube_number <= self.tubes.get_num_tubes():
+                success = self.tubes.fire_tube(tube_number)
+                if success:
+                    response = message.MsgResponse(success, 1).pack()
+                else:
+                    response = message.MsgResponse(success, 4).pack()
+            else:
+                response = message.MsgResponse(0, 2).pack()
+        else:
+            response = message.MsgResponse(0, 0).pack()
+
+        self.client.send(response)
+
     def _response(self, incoming):
         print "in response"
         utils.print_in_hex(incoming)
@@ -144,26 +163,33 @@ class SimNode(object):
         print "in request report"
         utils.print_in_hex(incoming)
 
+        self.client.send(message.MsgResponse(1, 0).pack())
+        report_msg = message.MsgReport(self.tubes.get_num_tubes(), self.tubes.get_tubes(), self.led_color, self.time_since_HB())
+        self.client.send(report_msg.pack())
+
     def _set_led(self, incoming):
         utils.print_in_hex(incoming)
         msg_id, red, green, blue = struct.unpack("=8s3B", incoming)
         print "in set led", red, green, blue
 
+        self.client.send(message.MsgResponse(1,1).pack())
+        self.led_color = (red, green, blue)
+
     def _heartbeat(self, incoming):
-        print "in heartbeat"
+        print "in heartbeat at time", time.time()
         utils.print_in_hex(incoming)
         self.last_hb_time = time.time()
+        self.client.send(message.MsgResponse(1, 0).pack())
 
     def _report(self, incoming):
-        print "in report"
-        utils.print_in_hex(incoming)
+        print "wtf is the master sending report messages?"
 
     """
     Update the state of the tubes. For the simulation all this will do is
     check for unloaded tubes and load a random tube.
     """
     def _update_tubes(self):
-        if self._time_since_Fire > self._LOAD_DELAY_S:
+        if self._time_since_fire > self._LOAD_DELAY_S:
             if time.time() - self._last_load_time > self._TIME_BETWEEN_LOADS_S:
                 if self.tubes.get_num_empty() > 0:
                     tube_num = random.choice(self.tubes.get_empty_tubes())
@@ -173,7 +199,7 @@ class SimNode(object):
     def close(self):
         self.client.close()
 
-if __name__ == "__main__":
+def test():
     sim = SimNode()
 
     hb = message.MsgHeartbeat().pack()
@@ -186,13 +212,13 @@ if __name__ == "__main__":
     messages = [hb, rqrep, resp, led, fire, report]
     for m in messages:
         sim.handle(m)
-
     sim.close()
-    """
+
+if __name__ == "__main__":
+    sim = SimNode()
     try:
-        sim.run()
+        sim.main()
     except KeyboardInterrupt:
         sim.close()
     else:
         pass
-    """
