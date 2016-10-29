@@ -31,7 +31,13 @@ def unpack(message):
 
         #get the crc and check that it is correct
         #add three to account for message length for start byte and payload size
-        crc = struct.unpack("H", message[payload_length + 3:])[0]
+        #print "payload length:", payload_length
+        #print "payload:",
+        #print_in_hex(message)
+        #print "last two bytes",
+        #print_in_hex(message[payload_length+ 3:payload_length+5])
+
+        crc = struct.unpack("=H", message[payload_length + 3:payload_length+5])[0]
         body = message[:payload_length + 3]
 
         if crc == calc_crc16(body):

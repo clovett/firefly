@@ -97,23 +97,22 @@ class SimNode(object):
         self._last_load_time = time.time()
 
     def time_since_HB(self):
-        return time.time() - self.last_hb_time()
+        return time.time() - self.last_hb_time
 
     #what do we have to do?
     def main(self):
-        while True:
-            #we need to check the state of the tubes and update tube_state
-            #for the simulation we are going to just assume that the tubes get
-            #reloaded at some rate some time after the last fire command.
-            self._update_tubes()
+        #we need to check the state of the tubes and update tube_state
+        #for the simulation we are going to just assume that the tubes get
+        #reloaded at some rate some time after the last fire command.
+        self._update_tubes()
 
-            #we need to check for and handle new messages
-            if self.client.connected():
-                incoming = self.client.receive()
-                if incoming is not None:
-                    self.handle(incoming)
-            else:
-                time.sleep(0.5)
+        #we need to check for and handle new messages
+        if self.client.connected():
+            incoming = self.client.receive()
+            if incoming is not None:
+                self.handle(incoming)
+        else:
+            time.sleep(0.5)
 
     """
     Given an incoming message in bytes, decode the message and call the relevent handler.
@@ -215,10 +214,16 @@ def test():
     sim.close()
 
 if __name__ == "__main__":
-    sim = SimNode()
+    nodes = []
+    for i in range(20):
+        sim = SimNode()
+        nodes.append(sim)
     try:
-        sim.main()
+        while 1:
+            for node in nodes:
+                node.main()
     except KeyboardInterrupt:
-        sim.close()
+        for node in nodes:
+            node.close()
     else:
         pass

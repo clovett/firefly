@@ -60,9 +60,10 @@ class Connection(object):
         return self._closed
 
     def close(self):
-        print "Network.Connection: Closing connection", self
-        self._closed = True
-        self._tcp_conn.close()
+        if not self.is_closed():
+            print "networking.Connection: Closing connection", self
+            self._closed = True
+            self._tcp_conn.close()
 
 NODE_LISTEN_PORT = 8008
 BROADCAST_FORMAT_STRING = '15si'

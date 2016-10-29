@@ -1,4 +1,4 @@
-import struct
+import struct, time
 
 """
 A simple wrapper class for a dict of methods.
@@ -14,6 +14,27 @@ class ActionHandler(object):
 
     def do_action(self, key, args):
         self.actions[key](args)
+
+"""
+the interval checker class checks to see if a set period of time
+has elapsed. Note that it is subject to jitter based on the reset
+counter only being reset when it is checked, so if it is checked slower
+than the set period it may be off by up to 0.99 periods.
+"""
+class IntervalChecker(object):
+    def __init__(self, period):
+        self.period = period
+        self.last_time = None
+
+    def start(self):
+        self.last_time = time.time()
+
+    def check(self, reset=True):
+        check_time = time.time()
+        isDone = check_time - self.last_time >= self.period
+        if isDone and reset:#TODO: Add correction for checking at less that period rate.
+            self.last_time = time.time()
+        return isDone
 
 def calc_crc16(message):
     CRC16_POLYNOM = 0x2F15
