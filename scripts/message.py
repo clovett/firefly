@@ -29,6 +29,10 @@ def unpack(message):
         #read the length
         payload_length = struct.unpack_from("=BH", message)[1]
 
+        if payload_length + 5 != len(message):
+            print "WARNING:Discarding part of message",
+            print_in_hex(message)
+
         #get the crc and check that it is correct
         #add three to account for message length for start byte and payload size
         #print "payload length:", payload_length
@@ -49,7 +53,7 @@ def unpack(message):
         else:
             raise ValueError("util:unpack: CRC does not match.")
     else:
-        raise ValueError("util:unpack: Startbyte (0xFE) not found.")
+        raise ValueError("util:unpack: Startbyte (0xFE) not found", first_byte, "found instead.")
 
 
 """

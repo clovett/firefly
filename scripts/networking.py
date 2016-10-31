@@ -35,6 +35,17 @@ class Connection(object):
                 else:
                     self._incoming_queue.put(data)
 
+    def flush(self):
+        done = False
+        data = ""
+        while not done:
+            new_data = self.receive()
+            if new_data is not None:
+                data += new_data
+            else:
+                done = True
+        return data
+
     def send(self, data):
         try:
             return self._tcp_conn.send(data)

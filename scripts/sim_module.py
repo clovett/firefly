@@ -91,10 +91,13 @@ class SimNode(object):
         self.actions.add_action("REPORT", self._report)
 
         #extra trackers for internal use only
-        self._time_since_fire = pow(2, 32) - 1
-        self._LOAD_DELAY_S = 10
+        self._last_fire_time = 0
+        self._LOAD_DELAY_S = 1
         self._TIME_BETWEEN_LOADS_S = 0.1
         self._last_load_time = time.time()
+
+    def time_since_fire(self):
+        return time.time() - self._last_fire_time
 
     def time_since_HB(self):
         return time.time() - self.last_hb_time
@@ -135,20 +138,26 @@ class SimNode(object):
     to orginize the behivors that are linked to each incoming message type.
     """
     def _fire_tube(self, incoming):
-        print "in fire tube"
-        utils.print_in_hex(incoming)
+        #print "in fire tube"
+        #utils.print_in_hex(incoming)
         msg_id, tube_number = struct.unpack("=10sB", incoming)
 
-        if self.time_since_HB < self.TIME_OUT_S:
+        if self.time_since_HB() < self.TIME_OUT_S:
             if tube_number <= self.tubes.get_num_tubes():
                 success = self.tubes.fire_tube(tube_number)
                 if success:
+                    #print "firing tube number", tube_number
+                    print self.tubes, "-", tube_number
+                    self._last_fire_time = time.time()
                     response = message.MsgResponse(success, 1).pack()
                 else:
+                    #print "Tube is not loaded", tube_number
                     response = message.MsgResponse(success, 4).pack()
             else:
+                #print "Tube number does not exist"
                 response = message.MsgResponse(0, 2).pack()
         else:
+            #print "Heatbeat has expired"
             response = message.MsgResponse(0, 0).pack()
 
         self.client.send(response)
@@ -175,8 +184,8 @@ class SimNode(object):
         self.led_color = (red, green, blue)
 
     def _heartbeat(self, incoming):
-        print "in heartbeat at time", time.time()
-        utils.print_in_hex(incoming)
+        #print "in heartbeat at time", time.time()
+        #utils.print_in_hex(incoming)
         self.last_hb_time = time.time()
         self.client.send(message.MsgResponse(1, 0).pack())
 
@@ -188,12 +197,13 @@ class SimNode(object):
     check for unloaded tubes and load a random tube.
     """
     def _update_tubes(self):
-        if self._time_since_fire > self._LOAD_DELAY_S:
+        if self.time_since_fire() > self._LOAD_DELAY_S:
             if time.time() - self._last_load_time > self._TIME_BETWEEN_LOADS_S:
                 if self.tubes.get_num_empty() > 0:
                     tube_num = random.choice(self.tubes.get_empty_tubes())
                     self.tubes.load_tube(tube_num)
                     self._last_load_time = time.time()
+                    print self.tubes, "+", tube_num
 
     def close(self):
         self.client.close()
@@ -214,16 +224,28 @@ def test():
     sim.close()
 
 if __name__ == "__main__":
-    nodes = []
-    for i in range(20):
+    import threading
+
+    def main_thread(event):
         sim = SimNode()
-        nodes.append(sim)
+        while not event.is_set():
+            sim.main()
+        sim.close()
+
+    nodes = []
+    killEvent = threading.Event()
+    for i in range(1):
+        node = threading.Thread(target=main_thread, args=[killEvent])
+        node.start()
+        nodes.append(node)
+        time.sleep(0.05)
+
     try:
         while 1:
-            for node in nodes:
-                node.main()
+            time.sleep(1)
     except KeyboardInterrupt:
+        killEvent.set()
         for node in nodes:
-            node.close()
+            node.join()
     else:
         pass
