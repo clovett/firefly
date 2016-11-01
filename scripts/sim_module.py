@@ -138,8 +138,8 @@ class SimNode(object):
     to orginize the behivors that are linked to each incoming message type.
     """
     def _fire_tube(self, incoming):
-        #print "in fire tube"
-        #utils.print_in_hex(incoming)
+        print "in fire tube"
+        utils.print_in_hex(incoming)
         msg_id, tube_number = struct.unpack("=10sB", incoming)
 
         if self.time_since_HB() < self.TIME_OUT_S:
@@ -184,8 +184,8 @@ class SimNode(object):
         self.led_color = (red, green, blue)
 
     def _heartbeat(self, incoming):
-        #print "in heartbeat at time", time.time()
-        #utils.print_in_hex(incoming)
+        print "in heartbeat at time", time.time()
+        utils.print_in_hex(incoming)
         self.last_hb_time = time.time()
         self.client.send(message.MsgResponse(1, 0).pack())
 

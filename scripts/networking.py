@@ -164,6 +164,9 @@ class Server(object):
         self._broadcast_thread.start()
 
 
+    def get_connections(self):
+        return self.connections
+
     def send_to(self, data, connection):
         return connection.send(data)
 
