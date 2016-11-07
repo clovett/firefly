@@ -151,7 +151,7 @@ class Server(object):
         #setup the server
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.settimeout(1)
-        self._server.bind((socket.gethostname(), 0))
+        self._server.bind(('', 0))
         self._server.listen(5)
 
         #start the server connection thread
