@@ -3,8 +3,9 @@ from Queue import Queue, Empty
 from threading import Thread
 import struct
 import time
+import message
 
-class Connection(object):
+class TcpStream(object):
     def __init__(self, con, addr):
         self.remote_addr = addr
         self._tcp_conn = con
@@ -28,43 +29,27 @@ class Connection(object):
             try:
                 data = self._tcp_conn.recv(4096)
             except:
-                pass
+                print "networking:TcpStream An error has occured while trying to receive."
             else:
                 if data is None or len(data) == 0:
                     self.close()
                 else:
-                    self._incoming_queue.put(data)
+                    for c in data:#put the data byte by byte into the queue
+                        self._incoming_queue.put(c)
 
-    def flush(self):
-        done = False
-        data = ""
-        while not done:
-            new_data = self.receive()
-            if new_data is not None:
-                data += new_data
-            else:
-                done = True
-        return data
-
-    def send(self, data):
+    #given bytes send them out
+    def write(self, data):
         try:
             return self._tcp_conn.send(data)
         except Exception:
             self.close()
             return 0
 
-    def receive(self, no_wait=False):
-        data = None
-        if no_wait:
-            try:
-                data = self._incoming_queue.get_nowait()
-            except Empty:
-                pass
-        else:
-            try:
-                data = self._incoming_queue.get(timeout=1)
-            except Empty:
-                pass
+    #return a byte or bytes from the buffer, block until num_bytes are read
+    def read(self, num_bytes=1):
+        data = ""
+        for i in range(num_bytes):
+            data += self._incoming_queue.get()
         return data
 
     def is_closed(self):
@@ -97,20 +82,23 @@ class Client(object):
             self._connection.close()
             self._connection = None
 
-    def connected(self):
+    def is_connected(self):
         return self._connection != None and not self._connection.is_closed()
 
     """
     Send the given data out over the connection
     """
-    def send(self, data):
-        self._connection.send(data)
+    def send(self, message):
+        self._connection.write(message.pack())
 
     """
-    Fetch and return the lastest data from the connection
+    Given a message parser, return an assembled message from the incoming bytes
+    A Parser is a method that takes a bytestream and returns an object.
+
+    This method will block based on reads from the incoming byte queue.
     """
-    def receive(self):
-        return self._connection.receive()
+    def receive(self, parser):
+        return parser(self._connection)
 
     """
     If no connection is found listen for broadcasts from a server.
@@ -138,10 +126,9 @@ class Client(object):
                     except Exception:
                         pass
                     else:
-                        self._connection = Connection(tcp_socket, (host, port))
+                        self._connection = TcpStream(tcp_socket, (host, port))
             else:
                 time.sleep(1)
-
 
 
 class Server(object):
@@ -167,14 +154,15 @@ class Server(object):
     def get_connections(self):
         return self.connections
 
-    def send_to(self, data, connection):
-        return connection.send(data)
+    def send_to(self, message, connection):
+        return connection.write(message.pack())
 
     """
-    Fetch and return the lastest data from the given connection
+    Given a message parser, fetch and return the lastest data from the given connection.
+    This should return a Message and will block based on the incoming message queue.
     """
-    def receive(self, connection):
-        return connection.receive(no_wait=True)
+    def receive_from(self, parser, connection):
+        return parser(connection)
 
     """
     Shutdown the server and signal to all the connections that they need to close.
@@ -195,7 +183,7 @@ class Server(object):
             except:
                 pass
             else:
-                new_connection = Connection(con, addr)
+                new_connection = TcpStream(con, addr)
                 print "new connection:", new_connection
                 if new_connection not in self.connections:
                     self.connections.append(new_connection)
@@ -209,6 +197,7 @@ class Server(object):
     """
     Send out the server information at a regular period
     """
+    #TODO: Switch to a broadcast group to reduce network spam
     def _broadcast_loop(self):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)

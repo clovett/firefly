@@ -10,26 +10,22 @@ class master(object):
         self.reports = {}#Report keyed on connection
 
     def send_hb(self, connection):
-        heartbeat_msg = message.MsgHeartbeat().pack()
-        connection.send(heartbeat_msg)
-        response, flags = self.wait_for_response(connection)
-        return response
+        heartbeat_msg = message.MsgHeartbeat()
+        self.server.send_to(heartbeat_msg, connection)
 
     """
     Given a connection and a tube number attempt to fire the tube
     """
     def fire_tube(self, tube_number, connection):
-        msg = message.MsgFireTubeNum(tube_number).pack()
-        connection.send(msg)
-        response, flags = self.wait_for_response(connection)
-        return response
+        msg = message.MsgFireTubeNum(tube_number)
+        self.server.send_to(msg, connection)
 
     """
     Given a connection, request and save the report from the node
     that contains all of the key node information
     """
     def get_report(self, connection):
-        msg = message.MsgRequestReport().pack()
+        msg = message.MsgRequestReport()
         connection.send(msg)
         response, flags = self.wait_for_response(connection)
         report = None
@@ -81,7 +77,7 @@ class master(object):
                 if heartbeat_interval.check():
                     for i, con in enumerate(self.connections):
                         self.send_hb(con)
-
+                """
                 if report_interval.check():
                     for con in self.connections:
                         if len(self.reports) > 0:
@@ -99,7 +95,7 @@ class master(object):
                         #fire everything!
                         for i in range(num_tubes):
                             self.fire_tube(i, con)
-
+                """
 
             time.sleep(0.1)
 

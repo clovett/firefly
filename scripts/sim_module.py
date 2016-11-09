@@ -110,8 +110,8 @@ class SimNode(object):
         self._update_tubes()
 
         #we need to check for and handle new messages
-        if self.client.connected():
-            incoming = self.client.receive()
+        if self.client.is_connected():
+            incoming = self.client.receive(message.parser)
             if incoming is not None:
                 self.handle(incoming)
         else:
@@ -187,7 +187,7 @@ class SimNode(object):
         print "in heartbeat at time", time.time()
         utils.print_in_hex(incoming)
         self.last_hb_time = time.time()
-        self.client.send(message.MsgResponse(1, 0).pack())
+        self.client.send(message.MsgResponse(1, 0))
 
     def _report(self, incoming):
         print "wtf is the master sending report messages?"

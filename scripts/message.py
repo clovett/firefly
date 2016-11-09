@@ -18,45 +18,6 @@ the correct type, or an error if no message type matched the incoming bytes.
 """
 
 """
-Take a incoming message and check to see if it has a valid crc and start byte.
-If is does, return the message id and payload, otherwise raise a ValueError
-"""
-def unpack(message):
-    #check for the correct start byte
-    first_byte = struct.unpack_from("=B", message)[0]
-
-    if first_byte == START_BYTE:
-        #read the length
-        payload_length = struct.unpack_from("=BH", message)[1]
-
-        if payload_length + 5 != len(message):
-            print "WARNING:Discarding part of message",
-            print_in_hex(message)
-
-        #get the crc and check that it is correct
-        #add three to account for message length for start byte and payload size
-        #print "payload length:", payload_length
-        #print "payload:",
-        #print_in_hex(message)
-        #print "last two bytes",
-        #print_in_hex(message[payload_length+ 3:payload_length+5])
-
-        crc = struct.unpack("=H", message[payload_length + 3:payload_length+5])[0]
-        body = message[:payload_length + 3]
-
-        if crc == calc_crc16(body):
-            payload = message[3:payload_length+3]
-            message_id = get_string(payload)
-            #then the message checks out and we should get the id and data.
-
-            return message_id, payload
-        else:
-            raise ValueError("util:unpack: CRC does not match.")
-    else:
-        raise ValueError("util:unpack: Startbyte (0xFE) not found", first_byte, "found instead.")
-
-
-"""
 The message class should not be used directly, and simply provides methods for
 checking the start bytes and CRC's of incoming messages, and packing outgoing
 messages.
@@ -85,12 +46,22 @@ class Message(object):
     def _pack_payload(self):
         raise NotImplementedError
 
+    def unpack(self, message_bytes):
+        raise NotImplementedError
+
 class MsgHeartbeat(Message):
     def __init__(self):
         self.id = "HEARTBEAT\0"
 
     def _pack_payload(self):
         return struct.pack("=10s", self.id)
+
+    def unpack(self, payload_bytes):
+        message_id = struct.unpack("=10s", payload_bytes)[0]
+        if message_id == self.id:
+            pass
+        else:
+            raise ValueError("id mis-match on message unpack")
 
 class MsgRequestReport(Message):
     def __init__(self):
@@ -118,7 +89,7 @@ class MsgSetLED(Message):
     def _pack_payload(self):
         return struct.pack("=8s3B", self.id, self.red, self.green, self.blue)
 
-class MsgFireTubeNum(Message):
+class MsgFireTube(Message):
     def __init__(self, tube_number):
         self.id = "FIRE_TUBE\0"
         self.tube_number = tube_number
@@ -144,6 +115,46 @@ class MsgReport(Message):
 
         msg += struct.pack('=I', self.time_since_HB)
         return msg
+
+
+MESSAGE_SELECT = {
+    "HEARTBEAT":MsgHeartbeat,
+    "REQUEST_REPORT":MsgRequestReport,
+    "RESPONSE":MsgResponse,
+    "SET_LED":MsgSetLED,
+    "FIRE_TUBE":MsgFireTube,
+    "REPORT":MsgReport
+}
+
+def parser(stream):
+    #interate until a startbyte is found
+    newByte = "0"
+    while struct.unpack('=B', newByte)[0] != START_BYTE:
+        newByte = stream.read()
+
+    #read the next two bytes as a length
+    lengthBytes = stream.read(2)
+    length = struct.unpack("=H", lengthBytes)[0]
+
+    #read the payload into a seperate buffer
+    payloadBytes = stream.read(length)
+
+    #get and calculate the checksum
+    crcBytes = stream.read(2)
+    crc = struct.unpack("=H", crcBytes)[0]
+
+    calc_crc = calc_crc16(newByte + lengthBytes + payloadBytes)
+
+    if calc_crc == crc:
+        #get the id string from the message
+        message_id = get_string(payloadBytes)
+
+        #retun a constructed message from the payload
+        message = MESSAGE_SELECT[message_id]()
+        message.unpack(payloadBytes)
+        return message
+    else:
+        return None
 
 if __name__ == "__main__":
     hb_test = MsgFireTubeNum(5)
