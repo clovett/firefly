@@ -8,35 +8,52 @@ class master(object):
         self.connections = self.server.get_connections()
         self.reports = {}#Report keyed on connection
 
-    def send_hb(self, connection):
-        heartbeat_msg = message.MsgHeartbeat()
-        self.server.send_to(heartbeat_msg, connection)
-        incoming = self.server.receive_from(message.parser, connection)
+        self.messages_sent = 0
 
+    def send_hb(self, connection):
+        try:
+            heartbeat_msg = message.MsgHeartbeat()
+            self.server.send_to(heartbeat_msg, connection)
+            incoming = self.server.receive_from(message.parser, connection)
+
+            self.messages_sent += 1
+        except:
+            print "aborted hb due to error"
+            connection.close()
     """
     Given a connection and a tube number attempt to fire the tube
     """
     def fire_tube(self, tube_number, connection):
-        msg = message.MsgFireTube(tube_number)
-        self.server.send_to(msg, connection)
-        incoming = self.server.receive_from(message.parser, connection)
+        try:
+            msg = message.MsgFireTube(tube_number)
+            self.server.send_to(msg, connection)
+            incoming = self.server.receive_from(message.parser, connection)
+
+            self.messages_sent += 1
+        except:
+            print "aborted fire due to error"
+            connection.close()
 
     """
     Given a connection, request and save the report from the node
     that contains all of the key node information
     """
     def get_report(self, connection):
-        msg = message.MsgRequestReport()
-        self.server.send_to(msg, connection)
-        response = self.server.receive_from(message.parser, connection)
-        report = None
-        if response.isAck == 1:
-            incoming = self.server.receive_from(message.parser, connection)
-            if "REPORT" in incoming.id:
-                report = incoming
-                self.server.send_to(message.MsgResponse(1, 0), connection)
-        self.reports[connection] = report
-        return report
+        try:
+            msg = message.MsgRequestReport()
+            self.server.send_to(msg, connection)
+            response = self.server.receive_from(message.parser, connection)
+            report = None
+            if response.isAck == 1:
+                incoming = self.server.receive_from(message.parser, connection)
+                if "REPORT" in incoming.id:
+                    report = incoming
+                    self.server.send_to(message.MsgResponse(1, 0), connection)
+                    self.reports[connection] = report
+                    self.messages_sent += 2
+        except:
+            print "aborted get report due to error"
+            connection.close()
 
     """
     Run a simple loop for debugging
@@ -59,23 +76,29 @@ class master(object):
                         self.send_hb(con)
 
                 if report_interval.check():
+                    print "Connections:", len(self.connections), "Messages:", self.messages_sent
+                    self.messages_sent = 0
+
                     for con in self.connections:
+                        self.get_report(con)
                         if len(self.reports) > 0:
-                            old_report = self.reports[con]
-                        else:
-                            old_report = None
-                        report = self.get_report(con)
-                        if report != old_report:
-                            print report.num_tubes, report.time_since_HB
+                            report = self.reports[con]
+                            #print report.num_tubes, report.time_since_HB
+
 
                 if fire_interval.check():
+                    print "### Fire the tubes! ###"
                     for con in self.connections:
-                        num_tubes = self.reports[con].num_tubes
+                        report = self.reports[con]
+                        ready = True
+                        for t in report.tube_state:
+                            ready = ready and t == 1
 
-                        #fire everything!
-                        for i in range(num_tubes):
-                            self.fire_tube(i, con)
-
+                        if ready:
+                            #fire everything!
+                            for i in range(report.num_tubes):
+                                self.fire_tube(i, con)
+                
             time.sleep(0.1)
 
 if __name__ == "__main__":

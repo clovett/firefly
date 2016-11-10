@@ -9,7 +9,7 @@ class TcpStream(object):
     def __init__(self, con, addr):
         self.remote_addr = addr
         self._tcp_conn = con
-        self._tcp_conn.settimeout(1)
+        self._tcp_conn.settimeout(5)
         self._incoming_queue = Queue()
         self._closed = False
 
@@ -30,6 +30,7 @@ class TcpStream(object):
                 data = self._tcp_conn.recv(4096)
             except Exception as e:
                 print "networking:TcpStream:", e
+                self.close()
             else:
                 if data is None or len(data) == 0:
                     self.close()
@@ -49,7 +50,7 @@ class TcpStream(object):
     def read(self, num_bytes=1):
         data = ""
         for i in range(num_bytes):
-            data += self._incoming_queue.get()
+            data += self._incoming_queue.get(timeout=5)
         return data
 
     def is_closed(self):
@@ -89,7 +90,7 @@ class Client(object):
     Send the given data out over the connection
     """
     def send(self, message):
-        print "client is sending:", message.id
+        #print "client is sending:", message.id
         self._connection.write(message.pack())
 
     """
@@ -100,7 +101,7 @@ class Client(object):
     """
     def receive(self, parser):
         incoming = parser(self._connection)
-        print "client got", incoming.id
+        #print "client got", incoming.id
         return incoming
 
     """
@@ -110,6 +111,7 @@ class Client(object):
     def _connection_loop(self):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         udp_socket.settimeout(1)
         udp_socket.bind(("", NODE_LISTEN_PORT))
 
@@ -158,7 +160,7 @@ class Server(object):
         return self.connections
 
     def send_to(self, message, connection):
-        print "server sent", message.id
+        #print "server sent", message.id
         return connection.write(message.pack())
 
     """
@@ -167,7 +169,7 @@ class Server(object):
     """
     def receive_from(self, parser, connection):
         incoming = parser(connection)
-        print "server got message:", incoming.id
+        #print "server got message:", incoming.id
         return incoming
 
     """

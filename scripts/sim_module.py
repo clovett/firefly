@@ -100,7 +100,8 @@ class SimNode(object):
         return time.time() - self._last_fire_time
 
     def time_since_HB(self):
-        return time.time() - self.last_hb_time
+        actualTime = time.time() - self.last_hb_time
+        return actualTime if actualTime <= 4294967295 else 4294967290
 
     #what do we have to do?
     def main(self):
@@ -153,7 +154,7 @@ class SimNode(object):
         print "in request report"
 
         self.client.send(message.MsgResponse(1, 0))
-        report_msg = message.MsgReport(self.tubes.get_num_tubes(), self.tubes.get_tubes(), self.led_color, self.time_since_HB()*1000)
+        report_msg = message.MsgReport(self.tubes.get_num_tubes(), self.tubes.get_tubes(), self.led_color, self.time_since_HB())
         self.client.send(report_msg)
 
     def _set_led(self, incoming):
@@ -213,11 +214,11 @@ if __name__ == "__main__":
 
     nodes = []
     killEvent = threading.Event()
-    for i in range(1):
+    for i in range(10):
         node = threading.Thread(target=main_thread, args=[killEvent])
         node.start()
         nodes.append(node)
-        time.sleep(0.05)
+        time.sleep(0.1)
 
     try:
         while 1:

@@ -106,7 +106,6 @@ class MsgSetLED(Message):
 
     def unpack(self, payload_bytes):
         msg_id, red, green, blue = struct.unpack("=8s3B", payload_bytes)
-        #TODO: figure out if we actually need additional error checking here
         self.red = red
         self.green = green
         self.blue = blue
