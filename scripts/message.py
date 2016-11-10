@@ -61,7 +61,7 @@ class MsgHeartbeat(Message):
         if message_id == self.id:
             pass
         else:
-            raise ValueError("id mis-match on message unpack")
+            raise ValueError("id mis-match on HEARTBEAT unpack")
 
 class MsgRequestReport(Message):
     def __init__(self):
@@ -70,8 +70,15 @@ class MsgRequestReport(Message):
     def _pack_payload(self):
         return struct.pack("=15s", self.id)
 
+    def unpack(self, payload_bytes):
+        message_id = struct.unpack("=15s", payload_bytes)[0]
+        if message_id == self.id:
+            pass
+        else:
+            raise ValueError("id mis-match on REQUEST_REPORT unpack")
+
 class MsgResponse(Message):
-    def __init__(self, isAck, flags):
+    def __init__(self, isAck=0, flags=0):
         self.id = "RESPONSE\0"
         self.isAck = isAck
         self.flags = flags
@@ -79,8 +86,16 @@ class MsgResponse(Message):
     def _pack_payload(self):
         return struct.pack("=9sBI", self.id, self.isAck, self.flags)
 
+    def unpack(self, payload_bytes):
+        msg_id, isAck, flags = struct.unpack("=9sBI", payload_bytes)
+        if self.id == msg_id:
+            self.isAck = isAck
+            self.flags = flags
+        else:
+            raise ValueError("id mis-match on RESPONSE unpack")
+
 class MsgSetLED(Message):
-    def __init__(self, red, green, blue):
+    def __init__(self, red=255, green=255, blue=255):
         self.id = "SET_LED\0"
         self.red = red
         self.green = green
@@ -89,16 +104,27 @@ class MsgSetLED(Message):
     def _pack_payload(self):
         return struct.pack("=8s3B", self.id, self.red, self.green, self.blue)
 
+    def unpack(self, payload_bytes):
+        msg_id, red, green, blue = struct.unpack("=8s3B", payload_bytes)
+        #TODO: figure out if we actually need additional error checking here
+        self.red = red
+        self.green = green
+        self.blue = blue
+
 class MsgFireTube(Message):
-    def __init__(self, tube_number):
+    def __init__(self, tube_number=-1):
         self.id = "FIRE_TUBE\0"
         self.tube_number = tube_number
 
     def _pack_payload(self):
         return struct.pack("=10sB", self.id, self.tube_number)
 
+    def unpack(self, payload_bytes):
+        msg_id, tube_number = struct.unpack("=10sB", payload_bytes)
+        self.tube_number = tube_number
+
 class MsgReport(Message):
-    def __init__(self, num_tubes, tube_state, led_color, time_since_HB):
+    def __init__(self, num_tubes=0, tube_state=[], led_color=(255,255,255), time_since_HB=-1):
         self.id = "REPORT\0"
         self.num_tubes = num_tubes
         self.tube_state = tube_state #array length num_tubes
@@ -116,6 +142,18 @@ class MsgReport(Message):
         msg += struct.pack('=I', self.time_since_HB)
         return msg
 
+    def unpack(self, payload_bytes):
+        msg_id, num_tubes = struct.unpack_from('=7sB', payload_bytes)
+        tubes = []
+        for i in range(num_tubes):
+            tubes.append(struct.unpack_from('=B', payload_bytes, 8+i)[0])
+        led_color = struct.unpack_from('=3B', payload_bytes, 8+num_tubes)
+        time_since_HB = struct.unpack_from("=I", payload_bytes, 8+num_tubes+3)[0]
+
+        self.num_tubes = num_tubes
+        self.tube_state = tubes
+        self.led_color = led_color
+        self.time_since_HB = time_since_HB
 
 MESSAGE_SELECT = {
     "HEARTBEAT":MsgHeartbeat,

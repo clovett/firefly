@@ -28,8 +28,8 @@ class TcpStream(object):
         while not self._closed:
             try:
                 data = self._tcp_conn.recv(4096)
-            except:
-                print "networking:TcpStream An error has occured while trying to receive."
+            except Exception as e:
+                print "networking:TcpStream:", e
             else:
                 if data is None or len(data) == 0:
                     self.close()
@@ -89,6 +89,7 @@ class Client(object):
     Send the given data out over the connection
     """
     def send(self, message):
+        print "client is sending:", message.id
         self._connection.write(message.pack())
 
     """
@@ -98,7 +99,9 @@ class Client(object):
     This method will block based on reads from the incoming byte queue.
     """
     def receive(self, parser):
-        return parser(self._connection)
+        incoming = parser(self._connection)
+        print "client got", incoming.id
+        return incoming
 
     """
     If no connection is found listen for broadcasts from a server.
@@ -155,6 +158,7 @@ class Server(object):
         return self.connections
 
     def send_to(self, message, connection):
+        print "server sent", message.id
         return connection.write(message.pack())
 
     """
@@ -162,7 +166,9 @@ class Server(object):
     This should return a Message and will block based on the incoming message queue.
     """
     def receive_from(self, parser, connection):
-        return parser(connection)
+        incoming = parser(connection)
+        print "server got message:", incoming.id
+        return incoming
 
     """
     Shutdown the server and signal to all the connections that they need to close.

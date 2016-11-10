@@ -83,12 +83,12 @@ class SimNode(object):
 
         #create an action handler for acting on incoming messages
         self.actions = utils.ActionHandler()
-        self.actions.add_action("REQUEST_REPORT", self._request_report)
-        self.actions.add_action("SET_LED", self._set_led)
-        self.actions.add_action("FIRE_TUBE", self._fire_tube)
-        self.actions.add_action("HEARTBEAT", self._heartbeat)
-        self.actions.add_action("RESPONSE", self._response)
-        self.actions.add_action("REPORT", self._report)
+        self.actions.add_action("REQUEST_REPORT\0", self._request_report)
+        self.actions.add_action("SET_LED\0", self._set_led)
+        self.actions.add_action("FIRE_TUBE\0", self._fire_tube)
+        self.actions.add_action("HEARTBEAT\0", self._heartbeat)
+        self.actions.add_action("RESPONSE\0", self._response)
+        self.actions.add_action("REPORT\0", self._report)
 
         #extra trackers for internal use only
         self._last_fire_time = 0
@@ -113,25 +113,10 @@ class SimNode(object):
         if self.client.is_connected():
             incoming = self.client.receive(message.parser)
             if incoming is not None:
-                self.handle(incoming)
+                self.actions.do_action(incoming.id, incoming)
         else:
             time.sleep(0.5)
 
-    """
-    Given an incoming message in bytes, decode the message and call the relevent handler.
-    This is done using a dict of functions keyed to the relevent bits of the
-    incoming message.
-    """
-    def handle(self, incoming):
-        #handler reads the address, payload length, string and calcs the crc
-        #then passes the payload to the relevent method to parse and act
-        try:
-            msg_id, payload = message.unpack(incoming)
-        except ValueError:
-            #send a nack to the master indicating that the message was not parsed
-            self.client.send(message.MsgResponse(0, 4).pack())
-        else:
-            self.actions.do_action(msg_id, payload)
 
     """
     Each of the "handler methods" below are for internal use only and are used
@@ -139,8 +124,7 @@ class SimNode(object):
     """
     def _fire_tube(self, incoming):
         print "in fire tube"
-        utils.print_in_hex(incoming)
-        msg_id, tube_number = struct.unpack("=10sB", incoming)
+        tube_number = incoming.tube_number
 
         if self.time_since_HB() < self.TIME_OUT_S:
             if tube_number <= self.tubes.get_num_tubes():
@@ -149,43 +133,38 @@ class SimNode(object):
                     #print "firing tube number", tube_number
                     print self.tubes, "-", tube_number
                     self._last_fire_time = time.time()
-                    response = message.MsgResponse(success, 1).pack()
+                    response = message.MsgResponse(success, 1)
                 else:
                     #print "Tube is not loaded", tube_number
-                    response = message.MsgResponse(success, 4).pack()
+                    response = message.MsgResponse(success, 4)
             else:
                 #print "Tube number does not exist"
-                response = message.MsgResponse(0, 2).pack()
+                response = message.MsgResponse(0, 2)
         else:
             #print "Heatbeat has expired"
-            response = message.MsgResponse(0, 0).pack()
+            response = message.MsgResponse(0, 0)
 
         self.client.send(response)
 
     def _response(self, incoming):
-        print "in response"
-        utils.print_in_hex(incoming)
-        msg_id, response, flags = struct.unpack("=9sBI", incoming)
+        print "in response, code is", incoming.isAck, incoming.flags
 
     def _request_report(self, incoming):
         print "in request report"
-        utils.print_in_hex(incoming)
 
-        self.client.send(message.MsgResponse(1, 0).pack())
-        report_msg = message.MsgReport(self.tubes.get_num_tubes(), self.tubes.get_tubes(), self.led_color, self.time_since_HB())
-        self.client.send(report_msg.pack())
+        self.client.send(message.MsgResponse(1, 0))
+        report_msg = message.MsgReport(self.tubes.get_num_tubes(), self.tubes.get_tubes(), self.led_color, self.time_since_HB()*1000)
+        self.client.send(report_msg)
 
     def _set_led(self, incoming):
-        utils.print_in_hex(incoming)
-        msg_id, red, green, blue = struct.unpack("=8s3B", incoming)
-        print "in set led", red, green, blue
+        print "in set led", incoming.red, incoming.green, incoming.blue
 
-        self.client.send(message.MsgResponse(1,1).pack())
-        self.led_color = (red, green, blue)
+        self.client.send(message.MsgResponse(1,1))
+        self.led_color = (incoming.red, incoming.green, incoming.blue)
 
     def _heartbeat(self, incoming):
         print "in heartbeat at time", time.time()
-        utils.print_in_hex(incoming)
+
         self.last_hb_time = time.time()
         self.client.send(message.MsgResponse(1, 0))
 
