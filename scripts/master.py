@@ -98,7 +98,7 @@ class master(object):
                             #fire everything!
                             for i in range(report.num_tubes):
                                 self.fire_tube(i, con)
-                
+
             time.sleep(0.1)
 
 if __name__ == "__main__":

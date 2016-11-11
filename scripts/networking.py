@@ -9,12 +9,14 @@ class TcpStream(object):
     def __init__(self, con, addr):
         self.remote_addr = addr
         self._tcp_conn = con
-        self._tcp_conn.settimeout(5)
+        self._tcp_conn.settimeout(1)
         self._incoming_queue = Queue()
         self._closed = False
 
         self._listen_thread = Thread(target=self._listen_loop)
         self._listen_thread.start()
+
+        self._pending_exception = None
 
     def __eq__(self, other):
         if other == None:
@@ -30,6 +32,7 @@ class TcpStream(object):
                 data = self._tcp_conn.recv(4096)
             except Exception as e:
                 print "networking:TcpStream:", e
+                self._pending_exception = e
                 self.close()
             else:
                 if data is None or len(data) == 0:
@@ -49,8 +52,17 @@ class TcpStream(object):
     #return a byte or bytes from the buffer, block until num_bytes are read
     def read(self, num_bytes=1):
         data = ""
-        for i in range(num_bytes):
-            data += self._incoming_queue.get(timeout=5)
+        if not self._closed:
+            i = 0
+            while self._pending_exception == None and i < num_bytes:
+                i += 1
+                try:
+                    data += self._incoming_queue.get(timeout=1)
+                except Empty:
+                    pass
+        if self._pending_exception != None:
+            raise self._pending_exception
+
         return data
 
     def is_closed(self):
@@ -111,7 +123,7 @@ class Client(object):
     def _connection_loop(self):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        #udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         udp_socket.settimeout(1)
         udp_socket.bind(("", NODE_LISTEN_PORT))
 
@@ -129,6 +141,7 @@ class Client(object):
                     try:
                         tcp_socket.connect((host, port))
                     except Exception:
+                        print "tcp exception"
                         pass
                     else:
                         self._connection = TcpStream(tcp_socket, (host, port))

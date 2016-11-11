@@ -214,7 +214,7 @@ if __name__ == "__main__":
 
     nodes = []
     killEvent = threading.Event()
-    for i in range(10):
+    for i in range(1):
         node = threading.Thread(target=main_thread, args=[killEvent])
         node.start()
         nodes.append(node)
