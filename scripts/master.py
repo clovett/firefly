@@ -30,8 +30,8 @@ class master(object):
             incoming = self.server.receive_from(message.parser, connection)
 
             self.messages_sent += 1
-        except:
-            print "aborted fire due to error"
+        except Exception as e:
+            print "aborted fire due to error", e
             connection.close()
 
     """
@@ -51,8 +51,8 @@ class master(object):
                     self.server.send_to(message.MsgResponse(1, 0), connection)
                     self.reports[connection] = report
                     self.messages_sent += 2
-        except:
-            print "aborted get report due to error"
+        except Exception as e:
+            print "aborted get report due to error", e
             connection.close()
 
     """
@@ -65,31 +65,52 @@ class master(object):
         report_interval = utils.IntervalChecker(1)
         report_interval.start()
 
+        stats_interval = utils.IntervalChecker(1)
+        stats_interval.start()
+
         fire_interval = utils.IntervalChecker(10)
         fire_interval.start()
 
+        startOfLoop = time.time()
+        loopTime = 0
+        heartbeat_time = 0
+        reportTime = 0
+        fireTime = 0
         while(1):
+            loopTime = time.time() - startOfLoop
+            startOfLoop = time.time()
+
+            if stats_interval.check():
+                print "Connections:", len(self.connections), "Messages:", self.messages_sent, "Loop time:", loopTime
+                print "Heartbeat time:", heartbeat_time, "reportTime:", reportTime, "Fire time:", fireTime
+                self.messages_sent = 0
+
             if len(self.connections) > 0:
-                #send heartbeats to the connections
+                #send heartbeats to the connection
                 if heartbeat_interval.check():
+                    hbStartTime = time.time()
                     for i, con in enumerate(self.connections):
                         self.send_hb(con)
+                    heartbeat_time = time.time() - hbStartTime
 
                 if report_interval.check():
-                    print "Connections:", len(self.connections), "Messages:", self.messages_sent
-                    self.messages_sent = 0
-
+                    reportStartTime = time.time()
                     for con in self.connections:
                         self.get_report(con)
                         if len(self.reports) > 0:
                             report = self.reports[con]
                             #print report.num_tubes, report.time_since_HB
-
+                    reportTime = time.time() - reportStartTime
 
                 if fire_interval.check():
-                    print "### Fire the tubes! ###"
+                    fireStartTime = time.time()
                     for con in self.connections:
-                        report = self.reports[con]
+                        try:
+                            report = self.reports[con]
+                        except KeyError:
+                            print "report for connection", con, "is missing, fetching now."
+                            self.get_report(con)
+                            report = self.reports[con]
                         ready = True
                         for t in report.tube_state:
                             ready = ready and t == 1
@@ -98,6 +119,7 @@ class master(object):
                             #fire everything!
                             for i in range(report.num_tubes):
                                 self.fire_tube(i, con)
+                    fireTime = time.time() - fireStartTime
 
             time.sleep(0.1)
 

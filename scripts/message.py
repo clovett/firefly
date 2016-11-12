@@ -168,6 +168,8 @@ def parser(stream):
     newByte = "0"
     while struct.unpack('=B', newByte)[0] != START_BYTE:
         newByte = stream.read()
+        if newByte == "":
+            return None
 
     #read the next two bytes as a length
     lengthBytes = stream.read(2)

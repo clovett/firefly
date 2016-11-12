@@ -3,16 +3,14 @@ from Queue import Queue, Empty
 from threading import Thread
 import struct
 import time
-import message
 
 class TcpStream(object):
     def __init__(self, con, addr):
         self.remote_addr = addr
         self._tcp_conn = con
-        self._tcp_conn.settimeout(1)
+        self._tcp_conn.settimeout(0.1)#we need this so that the listen thread dies
         self._incoming_queue = Queue()
         self._closed = False
-
         self._listen_thread = Thread(target=self._listen_loop)
         self._listen_thread.start()
 
@@ -31,11 +29,14 @@ class TcpStream(object):
             try:
                 data = self._tcp_conn.recv(4096)
             except Exception as e:
-                print "networking:TcpStream:", e
-                self._pending_exception = e
-                self.close()
+                if not isinstance(e, socket.timeout):
+                    print "networking:TcpStream:_listen_loop;", e
+                    self._pending_exception = e
+                    self.close()
             else:
                 if data is None or len(data) == 0:
+                    #if there isn't any data do nothing.
+                    print "networking:TcpStream:_listen_loop; Data is none, closing stream."
                     self.close()
                 else:
                     for c in data:#put the data byte by byte into the queue
@@ -57,12 +58,13 @@ class TcpStream(object):
             while self._pending_exception == None and i < num_bytes:
                 i += 1
                 try:
-                    data += self._incoming_queue.get(timeout=1)
+                    #this may be where we are getting stuck in the main loop of sim node?
+                    data += self._incoming_queue.get(timeout=0.1)
                 except Empty:
+                    #print "networking:TcpStream:read:empty exception"
                     pass
         if self._pending_exception != None:
             raise self._pending_exception
-
         return data
 
     def is_closed(self):
@@ -72,6 +74,10 @@ class TcpStream(object):
         if not self.is_closed():
             print "networking.Connection: Closing connection", self
             self._closed = True
+            try:
+                self._tcp_conn.shutdown(socket.SHUT_RD)
+            except socket.error:
+                pass
             self._tcp_conn.close()
 
 NODE_LISTEN_PORT = 8008
@@ -102,8 +108,11 @@ class Client(object):
     Send the given data out over the connection
     """
     def send(self, message):
-        #print "client is sending:", message.id
-        self._connection.write(message.pack())
+        if self.is_connected():
+            #print "client is sending:", message.id
+            self._connection.write(message.pack())
+        else:
+            raise ValueError("networking:Client:send Client must be connected to send.")
 
     """
     Given a message parser, return an assembled message from the incoming bytes
@@ -112,27 +121,31 @@ class Client(object):
     This method will block based on reads from the incoming byte queue.
     """
     def receive(self, parser):
-        incoming = parser(self._connection)
+        incoming = None
+        if self.is_connected():
+            incoming = parser(self._connection)
         #print "client got", incoming.id
         return incoming
 
     """
     If no connection is found listen for broadcasts from a server.
     If a broadcast is received make the connection.
+    The connection loop also checks the state of the connection.
     """
     def _connection_loop(self):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        #udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         udp_socket.settimeout(1)
-        udp_socket.bind(("", NODE_LISTEN_PORT))
+        udp_socket.bind(('', NODE_LISTEN_PORT))
 
         while not self._closed:
             if self._connection == None or self._connection.is_closed():
+                self._connection = None
                 try:
                     data = udp_socket.recv(4096)
-                except:
-                    pass
+                except socket.timeout:
+                    print "networking:Client:_connection_loop; udp socket timeout"
                 else:
                     host, port = struct.unpack(BROADCAST_FORMAT_STRING, data)
                     host = host.strip('\x00')
@@ -141,10 +154,12 @@ class Client(object):
                     try:
                         tcp_socket.connect((host, port))
                     except Exception:
-                        print "tcp exception"
-                        pass
+                        print "networking:Client:_connection_loop; tcp exception"
+                        host, port = None, None
+                        self._connection = None
                     else:
                         self._connection = TcpStream(tcp_socket, (host, port))
+                        print "New connection!" , self._connection
             else:
                 time.sleep(1)
 

@@ -73,7 +73,7 @@ class SimNode(object):
 
     def __init__(self):
         self.client = Client()
-        self.tubes = Tubes(15)
+        self.tubes = Tubes(10)
 
         #set the LED color to the default color
         self.led_color = (255, 255, 255)
@@ -101,7 +101,7 @@ class SimNode(object):
 
     def time_since_HB(self):
         actualTime = time.time() - self.last_hb_time
-        return actualTime if actualTime <= 4294967295 else 4294967290
+        return actualTime if actualTime <= 4294967295 else 4294967295
 
     #what do we have to do?
     def main(self):
@@ -112,11 +112,18 @@ class SimNode(object):
 
         #we need to check for and handle new messages
         if self.client.is_connected():
-            incoming = self.client.receive(message.parser)
-            if incoming is not None:
-                self.actions.do_action(incoming.id, incoming)
+            try:
+                incoming = self.client.receive(message.parser)
+                if incoming is not None:
+                    self.actions.do_action(incoming.id, incoming)
+                else:
+                    pass
+            except Exception as e:
+                print "Exception occured while trying to process messages"
+                print e
+                self.client.close()
         else:
-            time.sleep(0.5)
+            time.sleep(0.01)
 
 
     """
@@ -124,7 +131,6 @@ class SimNode(object):
     to orginize the behivors that are linked to each incoming message type.
     """
     def _fire_tube(self, incoming):
-        print "in fire tube"
         tube_number = incoming.tube_number
 
         if self.time_since_HB() < self.TIME_OUT_S:
@@ -132,7 +138,7 @@ class SimNode(object):
                 success = self.tubes.fire_tube(tube_number)
                 if success:
                     #print "firing tube number", tube_number
-                    print self.tubes, "-", tube_number
+                    print "firing tube:", tube_number
                     self._last_fire_time = time.time()
                     response = message.MsgResponse(success, 1)
                 else:
@@ -152,14 +158,12 @@ class SimNode(object):
 
     def _request_report(self, incoming):
         print "in request report"
-
         self.client.send(message.MsgResponse(1, 0))
         report_msg = message.MsgReport(self.tubes.get_num_tubes(), self.tubes.get_tubes(), self.led_color, self.time_since_HB())
         self.client.send(report_msg)
 
     def _set_led(self, incoming):
         print "in set led", incoming.red, incoming.green, incoming.blue
-
         self.client.send(message.MsgResponse(1,1))
         self.led_color = (incoming.red, incoming.green, incoming.blue)
 
@@ -183,25 +187,10 @@ class SimNode(object):
                     tube_num = random.choice(self.tubes.get_empty_tubes())
                     self.tubes.load_tube(tube_num)
                     self._last_load_time = time.time()
-                    print self.tubes, "+", tube_num
+                    print self.tubes.get_num_tubes() - self.tubes.get_num_empty(), "+", tube_num
 
     def close(self):
         self.client.close()
-
-def test():
-    sim = SimNode()
-
-    hb = message.MsgHeartbeat().pack()
-    rqrep = message.MsgRequestReport().pack()
-    resp = message.MsgResponse(1, 12).pack()
-    led = message.MsgSetLED(123, 21, 56).pack()
-    fire = message.MsgFireTubeNum(14).pack()
-    report = message.MsgReport(15, [1]*15, (126,53,168), 1014).pack()
-
-    messages = [hb, rqrep, resp, led, fire, report]
-    for m in messages:
-        sim.handle(m)
-    sim.close()
 
 if __name__ == "__main__":
     import threading
@@ -214,7 +203,7 @@ if __name__ == "__main__":
 
     nodes = []
     killEvent = threading.Event()
-    for i in range(1):
+    for i in range(20):
         node = threading.Thread(target=main_thread, args=[killEvent])
         node.start()
         nodes.append(node)
