@@ -1,4 +1,4 @@
-import socket, errno
+import socket, errno, os
 from Queue import Queue, Empty
 from threading import Thread
 import struct
@@ -81,7 +81,7 @@ class TcpStream(object):
             self._tcp_conn.close()
 
 NODE_LISTEN_PORT = 8008
-BROADCAST_FORMAT_STRING = '15si'
+BROADCAST_FORMAT_STRING = '=15si'
 
 class Client(object):
     """
@@ -135,7 +135,8 @@ class Client(object):
     def _connection_loop(self):
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        if not os.name == "nt":
+            udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         udp_socket.settimeout(1)
         udp_socket.bind(('', NODE_LISTEN_PORT))
 
@@ -147,14 +148,18 @@ class Client(object):
                 except socket.timeout:
                     print "networking:Client:_connection_loop; udp socket timeout"
                 else:
-                    host, port = struct.unpack(BROADCAST_FORMAT_STRING, data)
+                    try:
+                        host, port = struct.unpack(BROADCAST_FORMAT_STRING, data)
+                    except struct.error:
+                        print "error trying to unpack:", data, "length:", len(data)
                     host = host.strip('\x00')
                     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
                     try:
                         tcp_socket.connect((host, port))
-                    except Exception:
+                    except Exception as e:
                         print "networking:Client:_connection_loop; tcp exception"
+                        print e, host, port
                         host, port = None, None
                         self._connection = None
                     else:
@@ -171,7 +176,10 @@ class Server(object):
         #setup the server
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.settimeout(1)
-        self._server.bind(('', 0))
+        if os.name == "posix":
+            self._server.bind(("", 0))
+        else:
+            self._server.bind((socket.gethostname(), 0))
         self._server.listen(5)
 
         #start the server connection thread
@@ -240,7 +248,7 @@ class Server(object):
         while not self._closed:
             host, port = self._server.getsockname()
             msg = struct.pack(BROADCAST_FORMAT_STRING, host, port)
-            udp_socket.sendto(msg, ("255.255.255.255", NODE_LISTEN_PORT))
+            udp_socket.sendto(msg, ("<broadcast>", NODE_LISTEN_PORT))
             time.sleep(1)
 
         print "Network.Server: halting broadcast loop"
