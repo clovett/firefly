@@ -17,8 +17,8 @@ class master(object):
             incoming = self.server.receive_from(message.parser, connection)
 
             self.messages_sent += 1
-        except:
-            print "aborted hb due to error"
+        except Exception as e:
+            print "aborted hb due to error:", e
             connection.close()
     """
     Given a connection and a tube number attempt to fire the tube
@@ -38,7 +38,7 @@ class master(object):
     Given a connection, request and save the report from the node
     that contains all of the key node information
     """
-    def get_report(self, connection):
+    def update_report(self, connection):
         try:
             msg = message.MsgRequestReport()
             self.server.send_to(msg, connection)
@@ -54,6 +54,15 @@ class master(object):
         except Exception as e:
             print "aborted get report due to error", e
             connection.close()
+
+    def get_report(self, connection):
+        try:
+            report = self.reports[connection]
+        except KeyError:
+            print "report for connection", connection, "is missing, fetching now."
+            self.get_report(connection)
+            report = self.reports[connection]
+        return report
 
     """
     Run a simple loop for debugging
@@ -89,28 +98,20 @@ class master(object):
                 #send heartbeats to the connection
                 if heartbeat_interval.check():
                     hbStartTime = time.time()
-                    for i, con in enumerate(self.connections):
+                    for con in self.connections:
                         self.send_hb(con)
                     heartbeat_time = time.time() - hbStartTime
 
                 if report_interval.check():
                     reportStartTime = time.time()
                     for con in self.connections:
-                        self.get_report(con)
-                        if len(self.reports) > 0:
-                            report = self.reports[con]
-                            #print report.num_tubes, report.time_since_HB
+                        self.update_report(con)
                     reportTime = time.time() - reportStartTime
 
                 if fire_interval.check():
                     fireStartTime = time.time()
                     for con in self.connections:
-                        try:
-                            report = self.reports[con]
-                        except KeyError:
-                            print "report for connection", con, "is missing, fetching now."
-                            self.get_report(con)
-                            report = self.reports[con]
+                        report = self.get_report(con)
                         ready = True
                         for t in report.tube_state:
                             ready = ready and t == 1
