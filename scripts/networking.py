@@ -248,6 +248,7 @@ class Server(object):
         while not self._closed:
             host, port = self._server.getsockname()
             msg = struct.pack(BROADCAST_FORMAT_STRING, host, port)
+            print "networking:Server:broadcast msg len:",len(msg)
             udp_socket.sendto(msg, ("<broadcast>", NODE_LISTEN_PORT))
             time.sleep(1)
 
