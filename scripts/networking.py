@@ -1,6 +1,7 @@
 import socket, errno, os
 from Queue import Queue, Empty
 from threading import Thread
+import netifaces
 import struct
 import time
 
@@ -177,7 +178,8 @@ class Server(object):
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.settimeout(1)
         if os.name == "posix":
-            self._server.bind(("", 0))
+            socname = netifaces.ifaddresses('en0')[netifaces.AF_INET][0]['addr']
+            self._server.bind((socname, 0))
         else:
             self._server.bind((socket.gethostname(), 0))
         self._server.listen(5)
@@ -248,7 +250,6 @@ class Server(object):
         while not self._closed:
             host, port = self._server.getsockname()
             msg = struct.pack(BROADCAST_FORMAT_STRING, host, port)
-            print "networking:Server:broadcast msg len:",len(msg)
             udp_socket.sendto(msg, ("<broadcast>", NODE_LISTEN_PORT))
             time.sleep(1)
 
