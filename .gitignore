@@ -9,6 +9,7 @@
 *.opendb
 
 # Build results
+*.pyc
 
 
 [Dd]ebug/
