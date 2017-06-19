@@ -1,0 +1,29 @@
+menu "Hub Configuration"
+
+config WIFI_SSID
+    string "WiFi SSID"
+	default "firefly"
+	help
+		SSID (network name) for the example to connect to.
+
+config WIFI_PASSWORD
+    string "WiFi Password"
+	default "sparkfun"
+	help
+		WiFi password (WPA or WPA2) for the example to use.
+
+		Can be left blank if the network has no security set.
+
+config MDNS_HOSTNAME
+    string "mDNS Hostname"
+	default "firefly-hub"
+	help
+		mDNS Hostname to use
+
+config MDNS_INSTANCENAME
+    string "mDNS Instance"
+	default "firefly-hub1"
+	help
+		mDNS Instance name to use
+
+endmenu
