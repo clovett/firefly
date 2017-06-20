@@ -66,6 +66,8 @@ void mdns_monitor_task(void *pvParameter)
 void Wifi::initialise_wifi(void)
 {
     tcpip_adapter_init();
+    tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, MDNS_HOSTNAME);
+    
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK( esp_event_loop_init(wifi_event_handler, this) );
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -96,13 +98,9 @@ void Wifi::monitor(){
     
     mdns_server_t * mdns = NULL;
     while(1) {
-        /* Wait for the callback to set the CONNECTED_BIT in the event group.
-        */
+        // Wait for the callback to set the CONNECTED_BIT in the event group.
+        xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
 
-        // bugbug: this is an infinite wait... if ssid is not there, so we need to figure
-        // out if ssid is out there, if not try and take over 'master' role and become the ssid...
-        xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT,
-                            false, true, portMAX_DELAY);
         ESP_LOGI(TAG, "Connected to AP");
 
         if (!mdns) {
