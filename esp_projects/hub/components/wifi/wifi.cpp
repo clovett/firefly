@@ -66,7 +66,7 @@ void mdns_monitor_task(void *pvParameter)
 void Wifi::initialise_wifi(void)
 {
     tcpip_adapter_init();
-    tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, MDNS_HOSTNAME);
+    tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, CONFIG_MDNS_HOSTNAME);
     
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK( esp_event_loop_init(wifi_event_handler, this) );
