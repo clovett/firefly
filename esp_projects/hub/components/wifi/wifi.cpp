@@ -111,17 +111,9 @@ void Wifi::monitor(){
             }
 
             ESP_ERROR_CHECK( mdns_set_hostname(mdns, CONFIG_MDNS_HOSTNAME) );
-
-            // todo: figure out a way to name this instance dynamically so we don't have to compile 
-            // unique instance name into each firmware (MDNS_INSTANCENAME1, MDNS_INSTANCENAME2, MDNS_INSTANCENAME3....)
             ESP_ERROR_CHECK( mdns_set_instance(mdns, CONFIG_MDNS_INSTANCENAME) );
 
-            const char * arduTxtData[4] = {
-                "board=esp32",
-                "tcp_check=no",
-                "ssh_upload=no",
-                "auth_upload=no"
-            };
+
 
             ESP_ERROR_CHECK( mdns_service_add(mdns, "_arduino", "_tcp", 3232) );
             ESP_ERROR_CHECK( mdns_service_txt_set(mdns, "_arduino", "_tcp", 4, arduTxtData) );
