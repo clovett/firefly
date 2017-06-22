@@ -10,13 +10,14 @@ using Windows.Networking;
 
 namespace FireflyWindows
 {
-    class HubLocator
+    class FireflyHubLocator
     {
         CancellationTokenSource wifiSearchTokenSource;
         ManualResetEvent cancelled = new ManualResetEvent(false);
         bool findRunning;
         const int m_portNumber = 13777; // the magic firefly port
-        internal const string UdpBroadcastMessage = "FIREFLY-FIND-HUBS";
+        internal const string UdpBroadcastMessage = "FIREFLY-FIND-HUB";
+        internal const string UdpResponseMessage = "FIREFLY-HUB";
         Dictionary<string, UdpMessageStream> sockets = new Dictionary<string, UdpMessageStream>();
         Dictionary<string, FireflyHub> hubs = new Dictionary<string, FireflyHub>();
 
@@ -145,25 +146,26 @@ namespace FireflyWindows
             string[] parts = msg.Split(',');
             if (parts.Length == 3)
             {
-                string ipAddr = parts[0];
-                string macAddr = parts[1];
-                string model = parts[2];
-
-                FireflyHub hub = null;
-                if (!hubs.TryGetValue(ipAddr, out hub))
+                string prefix = parts[0];
+                string ipAddr = parts[1];
+                string port = parts[2];
+                if (prefix == UdpResponseMessage)
                 {
-                    hub = new FireflyHub()
+                    FireflyHub hub = null;
+                    if (!hubs.TryGetValue(ipAddr, out hub))
                     {
-                        LocalHost = stream.LocalAddress,
-                        IPAddress = ipAddr,
-                        MacAddress = macAddr,
-                        ModelName = model
-                    };
-                    hubs[ipAddr] = hub;
+                        hub = new FireflyHub()
+                        {
+                            LocalHost = stream.LocalAddress,
+                            IPAddress = ipAddr,
+                            Port = port
+                        };
+                        hubs[ipAddr] = hub;
 
-                    if (HubAdded != null)
-                    {
-                        HubAdded(this, hub);
+                        if (HubAdded != null)
+                        {
+                            HubAdded(this, hub);
+                        }
                     }
                 }
             }

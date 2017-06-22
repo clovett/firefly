@@ -9,6 +9,7 @@ using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
 using Windows.UI.Xaml.Data;
+using Windows.UI.Xaml.Documents;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
@@ -22,7 +23,7 @@ namespace FireflyWindows
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        HubLocator locator = new HubLocator();
+        FireflyHubLocator locator = new FireflyHubLocator();
 
         public MainPage()
         {
@@ -32,7 +33,16 @@ namespace FireflyWindows
 
         private void OnFoundHub(object sender, FireflyHub e)
         {
-
+            var nowait = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler(() =>
+            {
+                if (DebugOutput.Blocks.Count == 0)
+                {
+                    DebugOutput.Blocks.Add(new Paragraph());
+                }
+                Paragraph p = (Paragraph)DebugOutput.Blocks[0];
+                p.Inlines.Add(new Run() { Text = "Found hub at " + e.IPAddress + ":" + e.Port });
+                p.Inlines.Add(new LineBreak());
+            }));
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)

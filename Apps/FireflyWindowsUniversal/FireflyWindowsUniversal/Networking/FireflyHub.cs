@@ -11,7 +11,6 @@ namespace FireflyWindows
     {
         public string IPAddress { get; internal set; }
         public HostName LocalHost { get; internal set; }
-        public string MacAddress { get; internal set; }
-        public string ModelName { get; internal set; }
+        public string Port { get; internal set; }
     }
 }

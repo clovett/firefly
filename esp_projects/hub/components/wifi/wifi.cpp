@@ -1,12 +1,16 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
+#include "freertos/semphr.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
 #include "esp_event_loop.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
-#include "mdns.h"
+#include "lwip/ip_addr.h"
+#include "lwip/pbuf.h"
+#include "lwip/igmp.h"
+#include "lwip/udp.h"
 #include "wifi.hpp"
 #include <string.h>
 
@@ -19,10 +23,80 @@ static EventGroupHandle_t wifi_event_group;
 const int CONNECTED_BIT = BIT0;
 
 static const char *TAG = "firefly-wifi";
+static const char *FIND_HUB_BROADCAST = "FIREFLY-FIND-HUB";
+static const char *FIND_HUB_RESPONSE = "FIREFLY-HUB";
+const int FireflyBroadcastPort = 13777; // the magic firefly ports
+const int FireflyTcpPort = 13787; // the magic firefly ports
+
+#define MAX_MUTEX_WAIT_MS       1000
+#define MAX_MUTEX_WAIT_TICKS    (MAX_MUTEX_WAIT_MS / portTICK_PERIOD_MS)
+
+udp_message* Wifi::queue_message(struct pbuf *pb, const ip_addr_t *addr, uint16_t port)
+{
+    if (udp_queue_mutex == NULL){
+        ESP_LOGI(TAG, "queue_message called without udp_queue_mutex");
+        return NULL;
+    }
+    udp_message* result = (udp_message*)malloc(sizeof(udp_message));
+    if (!result) {
+        ESP_LOGI(TAG, "out of memory allocating udp_message");
+        return 0;
+    }
+    result->next = NULL;
+    result->buffer = (char*)malloc(pb->len);
+    if (!result) {
+        free(result);        
+        ESP_LOGI(TAG, "out of memory allocating udp_message buffer of len=%d", pb->len);
+        return 0;
+    }
+    memcpy(result->buffer, pb->payload, pb->len);
+    result->len = pb->len;
+    memcpy(&result->from, addr, sizeof(ip_addr_t));
+    result->port = port;
+
+    xSemaphoreTake(udp_queue_mutex, MAX_MUTEX_WAIT_TICKS);
+    if (queue_tail == NULL){
+        queue_head = queue_tail = result;
+    }
+    else {
+        queue_tail->next = result;
+        queue_tail = result;
+    }
+    xSemaphoreGive(udp_queue_mutex);
+    return result;
+}
+
+udp_message* Wifi::dequeue_message()
+{    
+    if (udp_queue_mutex == NULL){
+        ESP_LOGI(TAG, "dequeue_message called without udp_queue_mutex");
+        return NULL;
+    }
+    udp_message* result = NULL;    
+    xSemaphoreTake(udp_queue_mutex, MAX_MUTEX_WAIT_TICKS);
+    if (queue_head != NULL){
+        result = queue_head;
+        queue_head = queue_head->next;
+        if (queue_head == NULL){
+            queue_tail = NULL;
+        }
+    }
+    xSemaphoreGive(udp_queue_mutex);
+    return result; 
+}
+
+void Wifi::free_message(udp_message* msg)
+{
+    if (msg->buffer != NULL){
+        free(msg->buffer);
+    }
+    free(msg);
+}
+
 
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
 {
-    if (ctx != nullptr){
+    if (ctx != NULL){
         Wifi* ptr = (Wifi*)ctx;
         return ptr->handle_event(event);
     }
@@ -54,9 +128,9 @@ esp_err_t Wifi::handle_event(system_event_t *event)
     return ESP_OK;
 }
 
-void mdns_monitor_task(void *pvParameter)
+void udp_monitor_task(void *pvParameter)
 {
-    if (pvParameter != NULL){
+    if (pvParameter != NULL){        
         Wifi* wifi = (Wifi*)pvParameter;
         wifi->monitor();
     }
@@ -65,6 +139,9 @@ void mdns_monitor_task(void *pvParameter)
 
 void Wifi::initialise_wifi(void)
 {
+    queue_head = NULL;
+    queue_tail = NULL;
+
     tcpip_adapter_init();
     tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, CONFIG_MDNS_HOSTNAME);
     
@@ -89,95 +166,85 @@ void Wifi::initialise_wifi(void)
     
     ESP_LOGI(TAG, "wifi initialization complete.");
 
-    xTaskCreate(&mdns_monitor_task, "mdns_monitor_task", 2048, this, 5, NULL);
+    udp_queue_mutex = xSemaphoreCreateMutex();
+    if (!udp_queue_mutex){        
+        ESP_LOGI(TAG, "failed to create udp_queue_mutex.");
+    }
+
+    xTaskCreate(&udp_monitor_task, "udp_monitor_task", 8000, this, 5, NULL);
+
+}
+
+static void udp_receiver(void *arg, struct udp_pcb *upcb, struct pbuf *pb, const ip_addr_t *addr, uint16_t port)
+{
+    Wifi* wifi = (Wifi*)arg;
+    while(pb != NULL) {
+        struct pbuf * this_pb = pb;
+        pb = pb->next;
+        this_pb->next = NULL;
+        wifi->queue_message(this_pb, addr, port);
+        pbuf_free(this_pb);
+    }
 }
 
 void Wifi::monitor(){
 
-    ESP_LOGI(TAG, "monitoring firefly host.");
+    esp_err_t err = ESP_OK;
     
-    mdns_server_t * mdns = NULL;
-    while(1) {
-        // Wait for the callback to set the CONNECTED_BIT in the event group.
-        xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
+    // wait for wifi to be connected.
+    xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
+    ESP_LOGI(TAG, "Connected to AP");
 
-        ESP_LOGI(TAG, "Connected to AP");
-
-        if (!mdns) {
-            esp_err_t err = mdns_init(TCPIP_ADAPTER_IF_STA, &mdns);
-            if (err) {
-                ESP_LOGE(TAG, "Failed starting MDNS: %u", err);
-                continue;
-            }
-
-            ESP_ERROR_CHECK( mdns_set_hostname(mdns, CONFIG_MDNS_HOSTNAME) );
-            ESP_ERROR_CHECK( mdns_set_instance(mdns, CONFIG_MDNS_INSTANCENAME) );
-
-
-
-            ESP_ERROR_CHECK( mdns_service_add(mdns, "_arduino", "_tcp", 3232) );
-            ESP_ERROR_CHECK( mdns_service_txt_set(mdns, "_arduino", "_tcp", 4, arduTxtData) );
-            ESP_ERROR_CHECK( mdns_service_add(mdns, "_http", "_tcp", 80) );
-            ESP_ERROR_CHECK( mdns_service_instance_set(mdns, "_http", "_tcp", "ESP32 WebServer") );
-            ESP_ERROR_CHECK( mdns_service_add(mdns, "_smb", "_tcp", 445) );
-        }
-        else {
-
-            // test code...
-            query_mdns_service(mdns, "esp32", NULL);
-            query_mdns_service(mdns, "_arduino", "_tcp");
-            query_mdns_service(mdns, "_http", "_tcp");
-            query_mdns_service(mdns, "_printer", "_tcp");
-            query_mdns_service(mdns, "_ipp", "_tcp");
-            query_mdns_service(mdns, "_afpovertcp", "_tcp");
-            query_mdns_service(mdns, "_smb", "_tcp");
-            query_mdns_service(mdns, "_ftp", "_tcp");
-            query_mdns_service(mdns, "_nfs", "_tcp");
-        }
-
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-    }
-}
-
-
-void Wifi::query_mdns_service(mdns_server_t * mdns, const char * service, const char * proto)
-{
-    // test code...
-    if(!mdns) {
+    tcpip_adapter_ip_info_t if_ip_info;
+    err = tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &if_ip_info);
+    if (err) {
+        ESP_LOGI(TAG, "tcpip_adapter_get_ip_info failed with error=%d", (int)err);
         return;
     }
-    uint32_t res;
-    if (!proto) {
-        ESP_LOGI(TAG, "Host Lookup: %s", service);
-        res = mdns_query(mdns, service, 0, 1000);
-        if (res) {
-            size_t i;
-            for(i=0; i<res; i++) {
-                const mdns_result_t * r = mdns_result_get(mdns, i);
-                if (r) {
-                    ESP_LOGI(TAG, "  %u: " IPSTR " " IPV6STR, i+1, 
-                        IP2STR(&r->addr), IPV62STR(r->addrv6));
+
+    struct udp_pcb * pcb = udp_new_ip_type(IPADDR_TYPE_ANY);
+    if (!pcb) {
+        return;
+    }
+    err_t rc = udp_bind(pcb, IP_ANY_TYPE, FireflyBroadcastPort);
+    if (rc != ERR_OK) {
+        ESP_LOGI(TAG, "Wifi::monitor bind failed: %d", rc);
+        udp_remove(pcb);
+        return;
+    }
+
+    ESP_LOGI(TAG, "start listening...");
+    udp_recv(pcb, &udp_receiver, this);    
+
+    char* buffer = (char*)malloc(100);
+    
+    while (1) {
+        udp_message* msg = dequeue_message();
+        if (msg != NULL)
+        {
+            if (strncmp(msg->buffer, FIND_HUB_BROADCAST, msg->len) == 0)
+            {
+                const char* addr = ipaddr_ntoa(&msg->from);
+                ESP_LOGI(TAG, "hey, (%s:%d) wants to find us!", addr, msg->port);
+                
+                int len = sprintf(buffer, "%s,%s,%d", FIND_HUB_RESPONSE,addr, FireflyTcpPort);
+                struct pbuf* pbt = pbuf_alloc(PBUF_TRANSPORT, len + 1, PBUF_RAM);
+                memcpy(pbt->payload, buffer, len);
+
+                rc = udp_sendto(pcb, pbt, &(msg->from), msg->port);
+                if (rc != ERR_OK){
+                    ESP_LOGI(TAG, "Wifi::monitor udp_sendto: %d", rc);
                 }
+                pbuf_free(pbt);
             }
-            mdns_result_free(mdns);
-        } else {
-            ESP_LOGI(TAG, "  Not Found");
+            free_message(msg);
         }
-    } else {
-        ESP_LOGI(TAG, "Service Lookup: %s.%s ", service, proto);
-        res = mdns_query(mdns, service, proto, 1000);
-        if (res) {
-            size_t i;
-            for(i=0; i<res; i++) {
-                const mdns_result_t * r = mdns_result_get(mdns, i);
-                if (r) {
-                    ESP_LOGI(TAG, "  %u: %s \"%s\" " IPSTR " " IPV6STR " %u %s", i+1, 
-                        (r->host)?r->host:"", (r->instance)?r->instance:"", 
-                        IP2STR(&r->addr), IPV62STR(r->addrv6),
-                        r->port, (r->txt)?r->txt:"");
-                }
-            }
-            mdns_result_free(mdns);
+        else
+        {
+            vTaskDelay(200 / portTICK_PERIOD_MS);
         }
     }
+
+    free(buffer);
+    udp_remove(pcb);
 }

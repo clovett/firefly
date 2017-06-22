@@ -8,6 +8,8 @@
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-
+        <ScrollViewer >
+            <RichTextBlock x:Name="DebugOutput"/>
+        </ScrollViewer>
     </Grid>
 </Page>

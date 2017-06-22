@@ -15,13 +15,13 @@
 #include "../components/led/led.hpp"
 
 static const char *TAG = "main";
+static Wifi wifi;
+static LedController led;
 
 void run(){
 
-    Wifi wifi;
     wifi.initialise_wifi();
 
-    LedController led;
     led.start_led_task();
     
     ESP_LOGI(TAG, "bootstrap complete.");
