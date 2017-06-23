@@ -109,7 +109,7 @@ namespace FireflyWindows
 
         private async Task SendUdpPing(HostName hostName)
         {
-            Debug.WriteLine(DateTime.Now.TimeOfDay.ToString() + ": SendUdpPing");
+            Debug.WriteLine(DateTime.Now.ToString("T") + ": SendUdpPing");
             string ipAddress = hostName.CanonicalName;
             UdpMessageStream socket;
             bool setup = false;
@@ -138,11 +138,14 @@ namespace FireflyWindows
             await socket.SendAsync(UdpBroadcastMessage);
         }
 
+        long count = 0;
+
         private void OnUdpMessageReceived(object sender, string msg)
         {
             UdpMessageStream stream = (UdpMessageStream)sender;
-            Debug.WriteLine(DateTime.Now.TimeOfDay.ToString() + ": " + msg);
+            Debug.WriteLine(DateTime.Now.ToString("T") + ": " + msg + "(" + count + ")");
 
+            count++;
             string[] parts = msg.Split(',');
             if (parts.Length == 3)
             {

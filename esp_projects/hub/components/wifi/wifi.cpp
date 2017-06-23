@@ -143,7 +143,6 @@ void Wifi::initialise_wifi(void)
     queue_tail = NULL;
 
     tcpip_adapter_init();
-    tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, CONFIG_MDNS_HOSTNAME);
     
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK( esp_event_loop_init(wifi_event_handler, this) );
@@ -163,6 +162,11 @@ void Wifi::initialise_wifi(void)
     ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK( esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
     ESP_ERROR_CHECK( esp_wifi_start() );
+    
+    esp_err_t err = tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, CONFIG_MDNS_HOSTNAME);
+    if (err){        
+        ESP_LOGI(TAG, "tcpip_adapter_set_hostname failed, rc=%d", err);
+    }
     
     ESP_LOGI(TAG, "wifi initialization complete.");
 
