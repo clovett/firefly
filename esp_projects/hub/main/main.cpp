@@ -11,15 +11,15 @@
 #include "esp_system.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
-#include "../components/networking/wifi.hpp"
-#include "../components/networking/msgqueue.hpp"
+#include "../components/networking/Wifi.hpp"
+#include "../components/networking/MessageQueue.hpp"
+#include "../components/networking/UdpMessageStream.hpp"
+#include "../components/networking/TcpMessageStream.hpp"
+#include "../components/networking/Utils.hpp"
 #include "../components/led/led.hpp"
 #include <string.h>
 
 static const char *TAG = "main";
-static Wifi wifi;
-static LedController led;
-static MessageQueue queue;
 static const char *FIND_HUB_BROADCAST = "FIREFLY-FIND-HUB";
 static const char *FIND_HUB_RESPONSE = "FIREFLY-HUB";
 const int FireflyBroadcastPort = 13777; // the magic firefly ports
@@ -27,9 +27,15 @@ const int FireflyTcpPort = 13787; // the magic firefly ports
 
 void run(){
 
-    wifi.initialise_wifi(&queue);
-    wifi.start_udp_broadcast_monitor(FireflyBroadcastPort);
-    wifi.start_tcp_server(FireflyTcpPort);
+    Wifi wifi;
+    LedController led;
+    MessageQueue queue;
+    UdpMessageStream udp_stream(&queue);
+    TcpMessageStream tcp_stream(&queue);
+
+    wifi.initialise_wifi();
+    udp_stream.start_listening(FireflyBroadcastPort);
+    tcp_stream.start_listening(FireflyTcpPort);
 
     led.start_led_task();
     
@@ -43,14 +49,14 @@ void run(){
         {
             if (strncmp(msg->payload, FIND_HUB_BROADCAST, msg->len) == 0)
             {
-                const char* addr = Wifi::addr_to_string(&msg->remote_addr);
+                const char* addr = addr_to_string(&msg->remote_addr);
                 ESP_LOGI(TAG, "hey, (%s:%d) wants to find us!", addr, msg->remote_addr.sin_port);
 
-                addr = Wifi::addr_to_string(&msg->local_addr);
+                addr = wifi.get_local_ip();
                 int len = sprintf(buffer, "%s,%s,%d", FIND_HUB_RESPONSE, addr, FireflyTcpPort);
 
                 Message response(msg, buffer, len);
-                wifi.send_broadcast(&response);
+                udp_stream.send_to(&response);
                 
             }
             delete msg;
