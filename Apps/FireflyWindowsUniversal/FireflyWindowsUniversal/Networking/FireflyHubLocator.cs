@@ -140,10 +140,13 @@ namespace FireflyWindows
 
         long count = 0;
 
-        private void OnUdpMessageReceived(object sender, string msg)
+        private void OnUdpMessageReceived(object sender, Message m)
         {
             UdpMessageStream stream = (UdpMessageStream)sender;
-            Debug.WriteLine(DateTime.Now.ToString("T") + ": " + msg + "(" + count + ")");
+
+            string msg = Encoding.UTF8.GetString(m.Payload);
+            string debugString = string.Format("{0}: {1} from {2} ({3})", DateTime.Now.ToString("T"), msg, m.Address.ToString(), count);
+            Debug.WriteLine(debugString);
 
             count++;
             string[] parts = msg.Split(',');
@@ -160,8 +163,8 @@ namespace FireflyWindows
                         hub = new FireflyHub()
                         {
                             LocalHost = stream.LocalAddress,
-                            IPAddress = ipAddr,
-                            Port = port
+                            RemoteAddress = ipAddr,
+                            RemotePort = port
                         };
                         hubs[ipAddr] = hub;
 

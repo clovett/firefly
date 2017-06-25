@@ -40,6 +40,7 @@ void LedController::run()
         gpio_set_level(BLINK_GPIO, 1);
         vTaskDelay(200 / portTICK_PERIOD_MS);
     }
+	vTaskDelete(NULL);
 }
 
 void LedController::start_led_task()

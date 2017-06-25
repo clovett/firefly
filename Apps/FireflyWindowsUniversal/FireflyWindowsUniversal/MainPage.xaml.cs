@@ -31,7 +31,21 @@ namespace FireflyWindows
             this.InitializeComponent();
         }
 
-        private void OnFoundHub(object sender, FireflyHub e)
+        private async void OnFoundHub(object sender, FireflyHub e)
+        {
+            AddMessage("Found hub at " + e.RemoteAddress + ":" + e.RemotePort);
+
+            try
+            {
+                await e.ConnectAsync();
+            }
+            catch (Exception ex)
+            {
+                AddMessage("Connect failed: " + ex.Message);
+            }
+        }
+
+        void AddMessage(string msg)
         {
             var nowait = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler(() =>
             {
@@ -40,7 +54,7 @@ namespace FireflyWindows
                     DebugOutput.Blocks.Add(new Paragraph());
                 }
                 Paragraph p = (Paragraph)DebugOutput.Blocks[0];
-                p.Inlines.Add(new Run() { Text = "Found hub at " + e.IPAddress + ":" + e.Port });
+                p.Inlines.Add(new Run() { Text = msg });
                 p.Inlines.Add(new LineBreak());
             }));
         }

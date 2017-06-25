@@ -100,6 +100,8 @@
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Networking\Message.cs" />
+    <Compile Include="Networking\TcpMessageStream.cs" />
     <Compile Include="Networking\UdpMessageStream.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

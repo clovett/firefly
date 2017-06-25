@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,7 +10,6 @@ using Windows.Storage.Streams;
 
 namespace FireflyWindows.Networking
 {
-
     /// <summary>
     /// Sends a UDP message and waits for response.
     /// </summary>
@@ -17,8 +17,6 @@ namespace FireflyWindows.Networking
     {
         ManualResetEvent received = new ManualResetEvent(false);
         string response;
-        HostName remoteHost;
-        string remotePort;
         DatagramSocket socket;
         EndpointPair pair;
         string broadcastMessage;
@@ -91,32 +89,11 @@ namespace FireflyWindows.Networking
 
             return response;
         }
-
-        /// <summary>
-        /// If a message is received, this contains the remote host port number of the sender
-        /// </summary>
-        public string RemotePort { get { return this.remotePort; } }
-
-        /// <summary>
-        /// If a message is received, this contains the remote host name
-        /// </summary>
-        public HostName RemoteHost { get { return this.remoteHost; } }
-
-        internal static string BytesToString(byte[] buffer)
-        {
-            StringBuilder sb = new StringBuilder();
-            foreach (byte b in buffer)
-            {
-                sb.Append(Convert.ToChar(b));
-            }
-            return sb.ToString();
-
-        }
-
+        
         void OnDatagramMessageReceived(DatagramSocket sender, DatagramSocketMessageReceivedEventArgs args)
         {
-            this.remoteHost = args.RemoteAddress;
-            this.remotePort = args.RemotePort;
+            IPAddress remoteAddress = IPAddress.Parse(args.RemoteAddress.CanonicalName);
+            IPEndPoint remoteEndPoint = new IPEndPoint(remoteAddress, int.Parse(args.RemotePort));
 
             var reader = args.GetDataReader();
             uint bytesRead = reader.UnconsumedBufferLength;
@@ -124,17 +101,16 @@ namespace FireflyWindows.Networking
             byte[] data = new byte[bytesRead];
             reader.ReadBytes(data);
 
-            string msg = BytesToString(data);
+            string msg = Encoding.UTF8.GetString(data);
             if (msg != broadcastMessage)
             {
-                Debug.WriteLine("OnDatagramMessageReceived {0}", msg);
                 this.response = msg;
                 received.Set();
                 try
                 {
                     if (MessageReceived != null)
                     {
-                        MessageReceived(this, msg);
+                        MessageReceived(this, new Message(remoteEndPoint, data));
                     }
                 }
                 catch (Exception)
@@ -143,7 +119,7 @@ namespace FireflyWindows.Networking
             }
         }
 
-        public event EventHandler<string> MessageReceived;
+        public event EventHandler<Message> MessageReceived;
 
         public HostName LocalAddress { get { return pair.LocalHostName; } }
 
