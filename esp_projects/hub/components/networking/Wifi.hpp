@@ -9,11 +9,11 @@
 #include "lwip/ip_addr.h"
 #include <string>
 
-class Wifi 
+class Wifi
 {
 public:
     void initialise_wifi();
-    
+
     esp_err_t handle_event(system_event_t *event);
 
     std::string get_local_ip();

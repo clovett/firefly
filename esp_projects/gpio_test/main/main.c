@@ -22,14 +22,14 @@
 #define GPIO_OUTPUT_PIN_SEL 0x3040F6021
 #define GPIO_INPUT_IO_0     34 //Input only gpio as the sense line
 #define GPIO_INPUT_IO_1     35
-#define GPIO_INPUT_PIN_SEL  (((uint64_t)1<<GPIO_INPUT_IO_0) | ((uint64_t)1<<GPIO_INPUT_IO_1))
+#define GPIO_INPUT_PIN_SEL  0xC0A609014//(((uint64_t)1<<GPIO_INPUT_IO_0) | ((uint64_t)1<<GPIO_INPUT_IO_1))
 #define ESP_INTR_FLAG_DEFAULT 0
 
-#define GPIO_MOSI 3//3
-#define GPIO_SCLK 1//21
+#define GPIO_MOSI 1//3 // RX
+#define GPIO_SCLK 3//1 // TX
 
-#define NUM_LEDS 144
-#define SPI_BUFLEN 4*(NUM_LEDS+1)
+#define NUM_LEDS 12
+#define SPI_BUFLEN 4*(NUM_LEDS+1) //+1 for the leading empty header
 
 static xQueueHandle gpio_evt_queue = NULL;
 
@@ -143,44 +143,41 @@ void app_main()
     gpio_isr_handler_add(GPIO_INPUT_IO_0, gpio_isr_handler, (void*) GPIO_INPUT_IO_0);
 
     int cnt = 0;
-    int led = 0;
     int en = 0;
+    int red = 0;
+    int green = 0;
+    int blue = 0;
     while(1) {
-        vTaskDelay(250 / portTICK_RATE_MS);
-        
+        vTaskDelay(100 / portTICK_RATE_MS);
+
         en = !en;
         gpio_set_level(EN_RELAY, en);
 
-        sendbuf[(led+1)*4] = 224;
-        sendbuf[(led+1)*4+1] = 0;
-        sendbuf[(led+1)*4+2] = 0;
-        sendbuf[(led+1)*4+3] = 0;
+        red = cnt;
+        blue = 255 - cnt;
+        green = 0;
 
-        //setup the leds
-        if(led == NUM_LEDS){
-          led = 0;
-        } else {
-          led++;
+        cnt++;
+        if (cnt > 255){
+          cnt = 0;
         }
 
-        sendbuf[(led+1)*4] = 0xFF;
-        sendbuf[(led+1)*4+1] = cnt%255;
-        sendbuf[(led+1)*4+2] = (cnt*2)%255;
-        sendbuf[(led+1)*4+3] = (cnt*3)%255;
+        for(int i=0;i<NUM_LEDS; i++){
+          sendbuf[(i+1)*4] = 0xFF;
+          sendbuf[(i+1)*4+1] = red;
+          sendbuf[(i+1)*4+2] = green;
+          sendbuf[(i+1)*4+3] = blue;
+        }
 
-        //snprintf(sendbuf, 128, "Sender, transmission no. %04i.", n);
         t.length=SPI_BUFLEN*8; //BUFLEN bytes
         t.tx_buffer=sendbuf;
         ret=spi_device_transmit(handle, &t);
         n++;
 
-        //printf("cnt: %d\n", cnt++);
-        cnt++;
-
-        for(int i=0;i<NUM_GPIO;i++){
-          vTaskDelay(100 / portTICK_RATE_MS);
-          int io = tube_list[i];
-          gpio_set_level(io, cnt % 2);
-        }
+        //for(int i=0;i<NUM_GPIO;i++){
+        //  vTaskDelay(10 / portTICK_RATE_MS);
+        //  int io = tube_list[i];
+        //  gpio_set_level(io, cnt % 2);
+        //}
     }
 }
