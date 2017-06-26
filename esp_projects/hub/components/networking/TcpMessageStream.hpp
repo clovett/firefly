@@ -1,11 +1,12 @@
 #ifndef TCP_MESSAGE_STREAM_HPP
 #define TCP_MESSAGE_STREAM_HPP
 #include "MessageQueue.hpp"
+#include <string>
 
 class TcpMessageStream
 {
 public:
-    TcpMessageStream(MessageQueue* queue);
+    TcpMessageStream(MessageQueue* queue, std::string& local_ip);
 
     // start listening for TCP connections on the given port
     // then read from that connection and post messages to the queue
@@ -22,7 +23,8 @@ public:
 
     // internal use only
     void server();
-private:
+private: 
+    std::string local_ip;
     int port;  
     int tcp_socket;
     MessageQueue* queue; 

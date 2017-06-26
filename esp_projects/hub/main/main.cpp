@@ -11,6 +11,7 @@
 #include "esp_system.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
+#include <lwip/init.h>
 #include "../components/networking/Wifi.hpp"
 #include "../components/networking/MessageQueue.hpp"
 #include "../components/networking/UdpMessageStream.hpp"
@@ -29,12 +30,18 @@ void run(){
 
     Wifi wifi;
     LedController led;
-    MessageQueue queue;
-    UdpMessageStream udp_stream(&queue);
-    TcpMessageStream tcp_stream(&queue);
+
+	lwip_init();
 
     wifi.initialise_wifi();
+    std::string local_ip  = wifi.get_local_ip();
+
+    MessageQueue queue;
+
+    UdpMessageStream udp_stream(&queue);
     udp_stream.start_listening(FireflyBroadcastPort);
+
+    TcpMessageStream tcp_stream(&queue, local_ip);
     tcp_stream.start_listening(FireflyTcpPort);
 
     led.start_led_task();
@@ -52,7 +59,7 @@ void run(){
                 const char* addr = addr_to_string(&msg->remote_addr);
                 ESP_LOGI(TAG, "hey, (%s:%d) wants to find us!", addr, msg->remote_addr.sin_port);
 
-                addr = wifi.get_local_ip();
+                addr = local_ip.c_str();
                 int len = sprintf(buffer, "%s,%s,%d", FIND_HUB_RESPONSE, addr, FireflyTcpPort);
 
                 Message response(msg, buffer, len);

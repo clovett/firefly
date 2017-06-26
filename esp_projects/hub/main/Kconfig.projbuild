@@ -14,16 +14,10 @@ config WIFI_PASSWORD
 
 		Can be left blank if the network has no security set.
 
-config MDNS_HOSTNAME
-    string "mDNS Hostname"
+config HOSTNAME
+    string "Hostname"
 	default "firefly-hub"
 	help
-		mDNS Hostname to use
-
-config MDNS_INSTANCENAME
-    string "mDNS Instance"
-	default "firefly-hub1"
-	help
-		mDNS Instance name to use
+		Hostname to use
 
 endmenu

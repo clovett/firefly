@@ -7,6 +7,7 @@
 #include "esp_event.h"
 #include "freertos/semphr.h"
 #include "lwip/ip_addr.h"
+#include <string>
 
 class Wifi 
 {
@@ -15,9 +16,9 @@ public:
     
     esp_err_t handle_event(system_event_t *event);
 
-    const char* get_local_ip();
+    std::string get_local_ip();
 private:
-    ip_addr_t local_ip;
+    std::string local_ip;
 };
 
 #endif

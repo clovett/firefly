@@ -79,7 +79,7 @@ void Wifi::initialise_wifi()
     ESP_ERROR_CHECK( esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
     ESP_ERROR_CHECK( esp_wifi_start() );
     
-    esp_err_t err = tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, CONFIG_MDNS_HOSTNAME);
+    esp_err_t err = tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, CONFIG_HOSTNAME);
     if (err){        
         ESP_LOGI(TAG, "tcpip_adapter_set_hostname failed, rc=%d", err);
     }
@@ -97,13 +97,11 @@ void Wifi::initialise_wifi()
         return;
     }
 
-    memcpy(&(this->local_ip), &if_ip_info.ip, sizeof(ip4_addr_t));
-    this->local_ip.type = IPADDR_TYPE_V4;
-    const char* addr = ipaddr_ntoa(&this->local_ip);
-    ESP_LOGI(TAG, "local ip is %s", addr);
+    this->local_ip = ip4addr_ntoa(&if_ip_info.ip);
+    ESP_LOGI(TAG, "local ip is %s", this->local_ip.c_str());
 
 }
 
-const char* Wifi::get_local_ip(){
-    return ipaddr_ntoa(&local_ip);
+std::string Wifi::get_local_ip(){
+    return this->local_ip;
 }

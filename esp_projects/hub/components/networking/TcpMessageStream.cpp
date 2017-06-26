@@ -8,10 +8,11 @@
 
 static const char *TAG = "tcp";
 
-TcpMessageStream::TcpMessageStream(MessageQueue* queue)
+TcpMessageStream::TcpMessageStream(MessageQueue* queue, std::string& local_ip)
 {
     this->queue = queue;
-    tcp_socket = 0;
+    this->tcp_socket = 0;
+	this->local_ip = local_ip;
 }
 
 
@@ -40,7 +41,7 @@ void TcpMessageStream::server(){
     int sock;
     int total = 100;
     int sizeUsed = 0;
-    const char* addr;
+	const char* addr;
     char *data = (char*)malloc(total);
 
     if (data == NULL){
@@ -49,18 +50,21 @@ void TcpMessageStream::server(){
     }
 
 	// Create a socket that we will listen upon.
-    sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    sock = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (sock < 0) {
 		ESP_LOGE(TAG, "socket: %d %s", sock, strerror(errno));
 		goto END;
 	}
+	
 
 	// Bind our server socket to a port.
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
 	serverAddress.sin_port = htons(this->port);
 
-	rc = bind(sock, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
+	ESP_LOGI(TAG, "server port=%d, sinport=%d", this->port, (int)serverAddress.sin_port);
+
+	rc = ::bind(sock, (struct sockaddr *)&serverAddress, sizeof(struct sockaddr_in));
 
 	if (rc < 0) {
 		ESP_LOGE(TAG, "tcp bind failed: %d %s", rc, strerror(errno));
@@ -68,7 +72,7 @@ void TcpMessageStream::server(){
 	}
 
 	// Flag the socket as listening for new connections.
-	rc = listen(sock, 5);
+	rc = ::listen(sock, 5);
 	if (rc < 0) {
 		ESP_LOGE(TAG, "listen failed: %d %s", rc, strerror(errno));
 		goto END;
@@ -79,7 +83,7 @@ void TcpMessageStream::server(){
 		// Listen for a new client connection.
         ESP_LOGI(TAG, "server accepting...");
 		socklen_t clientAddressLength = sizeof(clientAddress);
-		int client_socket = accept(sock, (struct sockaddr *)&clientAddress, &clientAddressLength);
+		int client_socket = ::accept(sock, (struct sockaddr *)&clientAddress, &clientAddressLength);
 
 		if (client_socket < 0) {
 			ESP_LOGE(TAG, "accept failed: %d %s", client_socket, strerror(errno));
