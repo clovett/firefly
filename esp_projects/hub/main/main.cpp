@@ -25,6 +25,123 @@ static const char *FIND_HUB_BROADCAST = "FIREFLY-FIND-HUB";
 static const char *FIND_HUB_RESPONSE = "FIREFLY-HUB";
 const int FireflyBroadcastPort = 13777; // the magic firefly ports
 const int FireflyTcpPort = 13787; // the magic firefly ports
+const uint8_t HeaderByte = 0xfe;
+const int FireflyCommandLength = 5;
+const int MaxTubes = 10;
+
+static uint8_t Crc(char* buffer, int offset, int len)
+{
+    uint8_t crc = 0;
+    for (int i = offset; i < len; i++)
+    {
+        uint8_t c = buffer[i];
+        crc = (uint8_t)((crc >> 1) ^ c);
+    }
+    return crc;
+}
+
+enum FireflyCommand
+{
+    None = 0,
+    Info = 'I',
+    Fire = 'F',
+    Heartbeat = 'H',
+    // responses
+    Ready = 'R',
+    Ack = 'A',
+    Nack = 'N',
+    Timeout = 'T',
+    Error = 'E'
+};
+
+class  FireMessage
+{
+public:
+    uint8_t header_byte = 0;
+    FireflyCommand command= None;
+    uint8_t arg1= 0;
+    uint8_t arg2= 0;
+    uint8_t crc= 0;
+    bool crc_valid = false;
+
+    FireMessage(Message* msg){      
+      if (msg->len == FireflyCommandLength) {
+          header_byte = (uint8_t)msg->payload[0];
+          command = (FireflyCommand)msg->payload[1];
+          arg1 = (uint8_t)msg->payload[2];
+          arg2 = (uint8_t)msg->payload[3];
+          crc = (uint8_t)msg->payload[4];
+          crc_valid = (this->crc == Crc(msg->payload, 0, 4));
+      }
+    }
+
+    char* pack() {
+      buffer[0] = HeaderByte;
+      buffer[1] = (char)command;
+      buffer[2] = (char)arg1;
+      buffer[3] = (char)arg2;
+      buffer[4] = Crc(buffer,0,4);
+      return buffer;
+    }
+
+    int tube() {
+      return (arg1 + (arg2 << 8) );
+    }
+    private:
+    char buffer[5];
+};
+
+void handle_command(FireMessage& msg)
+{
+  int tube = 0;
+  if (msg.header_byte == HeaderByte && msg.crc_valid)
+  {
+    switch (msg.command)
+    {
+    case Info:
+      // return number of tubes.
+      msg.command = Ack;
+      msg.arg1 = MaxTubes;
+      msg.arg2 = 0;
+      // todo: we could also sense loaded tubes right?
+      // then perhaps return a bitmap of loaded vs empty tubes.
+      break;
+    case Heartbeat:
+        // heartbeat, echo back simple response.
+        ESP_LOGI(TAG, "heartbeat ping");
+        msg.command = Ack;
+        msg.arg1 = 0;
+        msg.arg2 = 0;
+        break;
+    case Fire:
+        // fire !
+        tube = msg.tube();
+        if (tube < MaxTubes) {
+          ESP_LOGI(TAG, "firing tube %d", tube);
+          msg.command = Ack;
+          // todo: actually do it
+        }
+        else {
+          ESP_LOGI(TAG, "tube index out of range %d", tube);
+          msg.command = Nack;
+        }
+        break;
+        
+      // not expecting anything else
+    case None:
+    case Ready:
+    case Ack:
+    case Nack:
+    case Timeout:
+    case Error:
+    default:
+      msg.command = Error;
+      break;  
+      
+    }
+  }
+
+}
 
 void run(){
 
@@ -54,7 +171,13 @@ void run(){
     Message* msg = queue.dequeue();
     if (msg != NULL)
     {
-      if (strncmp(msg->payload, FIND_HUB_BROADCAST, msg->len) == 0)
+      if (msg->is_tcp()){
+          FireMessage fm(msg);
+          handle_command(fm);
+          Message response(msg, fm.pack(), FireflyCommandLength);
+          tcp_stream.send_reply(msg);
+      }
+      else if (strncmp(msg->payload, FIND_HUB_BROADCAST, msg->len) == 0)
       {
         const char* addr = addr_to_string(&msg->remote_addr);
         ESP_LOGI(TAG, "hey, (%s:%d) wants to find us!", addr, msg->remote_addr.sin_port);

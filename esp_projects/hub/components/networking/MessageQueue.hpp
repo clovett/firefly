@@ -15,6 +15,10 @@ public:
 
     ~Message();
 
+    bool is_tcp() {
+        return tcp_socket != 0;
+    }
+
     char* payload;
     int len;
     int tcp_socket; // if this is a tcp message

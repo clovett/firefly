@@ -48,15 +48,24 @@ namespace FireflyWindows.Networking
                 if (s != null)
                 {
                     int len = message.Length;
-                    this.writer.Write(len);
+                    byte[] length = new byte[2];
+                    length[0] = (byte)len;
+                    length[1] = (byte)(len >> 8);
+                    this.writer.Write(length, 0, 2);
                     this.writer.Write(message, 0, len);
                     this.writer.Flush();
 
-                    len = this.reader.ReadInt32();
-                    if (len < messageMaxLength)
+                    length[0] = this.reader.ReadByte();
+                    length[1] = this.reader.ReadByte();
+                    len = length[0] + (length[1] >> 8);
+                    if (len <= messageMaxLength)
                     {
                         byte[] result = this.reader.ReadBytes(len);
                         return result;
+                    }
+                    else
+                    {
+                        // now what, stream is out of sync, perhaps we should skip to next magic marker...
                     }
                 }
 

@@ -108,8 +108,8 @@ void TcpMessageStream::server(){
       }
 
       sizeUsed += sizeRead;
-      while (sizeUsed > 4){
-        int len = *(int*)&data[0];
+      while (sizeUsed > 2){
+        int len = (uint8_t)data[0] + ((uint8_t)data[1] << 8);
         ESP_LOGI(TAG, "received length of: %d bytes", len);
 
         if (sizeUsed - 2 >= len){
@@ -135,8 +135,12 @@ void TcpMessageStream::server(){
 }
 
 void TcpMessageStream::send_reply(Message* msg)
-{
-  int rc = send(msg->tcp_socket, msg->payload, msg->len, 0);
+{   
+  uint8_t len[2];
+  len[0] = (uint8_t)(msg->len);
+  len[1] = (uint8_t)(msg->len >> 8);
+  int rc = send(msg->tcp_socket, (char*)&len[0], 2, 0);
+  rc = send(msg->tcp_socket, msg->payload, msg->len, 0);
   if (rc != msg->len) {
     ESP_LOGE(TAG, "send failed: %d %s", rc, strerror(errno));
   }

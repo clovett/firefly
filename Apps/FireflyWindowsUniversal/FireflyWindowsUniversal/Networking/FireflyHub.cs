@@ -45,7 +45,7 @@ namespace FireflyWindows
             if (result != null && result.Length == FireMessage.MessageLength && 
                 result[0] == HeaderByte)
             {   
-                if (Crc(result,0,4) == result[5])
+                if (Crc(result,0,4) == result[4])
                 {
                     msg = new FireMessage()
                     {
@@ -173,12 +173,12 @@ namespace FireflyWindows
             }
         }
 
-        private void Heartbeat()
+        private async void Heartbeat()
         {
             while (running)
             {
                 SendMessage(new FireMessage() { FireCommand = FireCommand.Heartbeat });
-                Task.Delay(1000).Wait();
+                await Task.Delay(1000);
             }
         }
     }

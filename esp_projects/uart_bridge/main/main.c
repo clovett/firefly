@@ -29,10 +29,10 @@
 #include "lwip/sys.h"
 
 
-#define WIFI_SSID "network"
-#define WIFI_PASS "password"
+#define WIFI_SSID CONFIG_WIFI_SSID
+#define WIFI_PASS CONFIG_WIFI_PASSWORD
 
-#define MDNS_HOSTNAME "uart_bridge"
+#define MDNS_HOSTNAME CONFIG_HOSTNAME
 #define MDNS_INSTANCE "esp_uart"
 
 
