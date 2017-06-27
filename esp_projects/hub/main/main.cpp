@@ -18,6 +18,7 @@ CONDITIONS OF ANY KIND, either express or implied.
 #include "../components/networking/TcpMessageStream.hpp"
 #include "../components/networking/Utils.hpp"
 #include "../components/led/led.hpp"
+#include "../components/gpio/tubes.hpp"
 #include <string.h>
 
 static const char *TAG = "main";
@@ -28,6 +29,8 @@ const int FireflyTcpPort = 13787; // the magic firefly ports
 const uint8_t HeaderByte = 0xfe;
 const int FireflyCommandLength = 5;
 const int MaxTubes = 10;
+
+Tubes tubes;
 
 static uint8_t Crc(char* buffer, int offset, int len)
 {
@@ -119,7 +122,7 @@ void handle_command(FireMessage& msg)
         if (tube < MaxTubes) {
           ESP_LOGI(TAG, "firing tube %d", tube);
           msg.command = Ack;
-          // todo: actually do it
+          tubes.fire(tube);
         }
         else {
           ESP_LOGI(TAG, "tube index out of range %d", tube);
@@ -147,6 +150,8 @@ void run(){
 
   Wifi wifi;
   LedController led;
+
+  tubes.init();
 
   lwip_init();
 
