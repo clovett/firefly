@@ -1,5 +1,7 @@
-﻿using System;
+﻿using BleLights.SharedControls;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -24,6 +26,7 @@ namespace FireflyWindows
     public sealed partial class MainPage : Page
     {
         FireflyHubLocator locator = new FireflyHubLocator();
+        DelayedActions delayedActions = new DelayedActions();
 
         public MainPage()
         {
@@ -37,7 +40,9 @@ namespace FireflyWindows
 
             try
             {
+                e.MessageReceived += OnMessageReceived;
                 await e.ConnectAsync();
+                e.GetInfo();
             }
             catch (Exception ex)
             {
@@ -45,24 +50,73 @@ namespace FireflyWindows
             }
         }
 
+        private void OnMessageReceived(object sender, FireMessage e)
+        {
+            FireflyHub hub = (FireflyHub)sender;
+            switch (e.FireCommand)
+            {
+                case FireCommand.None:
+                    break;
+                case FireCommand.Info:
+                    // ok, what have we got, let's show this many tubes...
+                    break;
+                case FireCommand.Fire:
+                    break;
+                case FireCommand.Heartbeat:
+                    break;
+                case FireCommand.Ready:
+                    break;
+                case FireCommand.Ack:
+                    break;
+                case FireCommand.Nack:
+                    break;
+                case FireCommand.Timeout:
+                    break;
+                case FireCommand.Error:
+                    break;
+                default:
+                    break;
+            }
+        }
+
         void AddMessage(string msg)
         {
-            var nowait = Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler(() =>
+            Debug.WriteLine(msg);
+            UiDispatcher.RunOnUIThread(() => 
             {
-                if (DebugOutput.Blocks.Count == 0)
-                {
-                    DebugOutput.Blocks.Add(new Paragraph());
-                }
-                Paragraph p = (Paragraph)DebugOutput.Blocks[0];
-                p.Inlines.Add(new Run() { Text = msg });
-                p.Inlines.Add(new LineBreak());
-            }));
+                Messages.Text = msg;
+            });
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             locator.StartFindingHubs();
             base.OnNavigatedTo(e);
+        }
+
+        private void OnStop(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void OnRefresh(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void OnPause(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void OnPlay(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void OnSettings(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

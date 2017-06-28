@@ -43,7 +43,7 @@ void UdpMessageStream::monitor(){
   }
 
   // Create a socket that we will listen to.
-  udp_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_TCP);
+  udp_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (udp_socket < 0) {
     ESP_LOGE(TAG, "socket: %d %s", udp_socket, strerror(errno));
     goto END;
@@ -64,7 +64,8 @@ void UdpMessageStream::monitor(){
   while (1) {
 
     // Listen for a new client connection.
-    rc = recvfrom(udp_socket, buffer, 100, SO_BROADCAST, (struct sockaddr*)&serverAddress, &serverAddressLength);
+    // rc = recvfrom(udp_socket, buffer, 100, SO_BROADCAST, (struct sockaddr*)&serverAddress, &serverAddressLength);
+    rc = recvfrom(udp_socket, buffer, 100, 0, (struct sockaddr*)&serverAddress, &serverAddressLength);
     if (rc < 0) {
       // todo: should we ignore ECONNRESET, and EINTR ?
       ESP_LOGE(TAG, "recv failed: %d %s", udp_socket, strerror(errno));

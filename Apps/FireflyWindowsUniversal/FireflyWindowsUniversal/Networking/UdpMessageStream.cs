@@ -20,18 +20,25 @@ namespace FireflyWindows.Networking
         DatagramSocket socket;
         EndpointPair pair;
         string broadcastMessage;
+        bool connected;
 
         /// <summary>
         /// Connect a datagram socket and monitor messages that contain the given broadcastMessage 
         /// </summary>
         /// <param name="pair"></param>
         /// <param name="broadcastMessage">The message to look for</param>
-        public void ConnectAsync(EndpointPair pair, string broadcastMessage)
+        public async Task ConnectAsync(EndpointPair pair, string broadcastMessage)
         {
             this.broadcastMessage = broadcastMessage;
             socket = new DatagramSocket();
             socket.MessageReceived += OnDatagramMessageReceived;
             this.pair = pair;
+            if (string.IsNullOrEmpty(broadcastMessage))
+            {
+                // then this is a directed UDP socket that should talk to only one end point.
+                await socket.ConnectAsync(pair);
+                connected = true;
+            }
         }
 
         public void Dispose()
@@ -55,41 +62,23 @@ namespace FireflyWindows.Networking
 
         public async Task SendAsync(string message)
         {
+            await SendAsync(StringToAnsiiBytes(message));
+        }
+
+        public async Task SendAsync(byte[] message)
+        {
             response = null;
 
             using (var stream = await socket.GetOutputStreamAsync(pair))
             {
                 using (var writer = new DataWriter(stream))
                 {
-                    byte[] msg = StringToAnsiiBytes(message);
-                    writer.WriteBytes(msg);
+                    writer.WriteBytes(message);
                     await writer.StoreAsync();
                 }
             }
         }
 
-        public async Task<string> SendReceiveAsync(string message, TimeSpan timeout)
-        {
-            received.Reset();
-            response = null;
-
-            await SendAsync(message);
-
-            // wait for a response
-            if (timeout != TimeSpan.MinValue)
-            {
-                await Task.Run(new Action(() =>
-                {
-                    if (!received.WaitOne((int)timeout.TotalMilliseconds))
-                    {
-                        response = null;
-                    }
-                }));
-            }
-
-            return response;
-        }
-        
         void OnDatagramMessageReceived(DatagramSocket sender, DatagramSocketMessageReceivedEventArgs args)
         {
             IPAddress remoteAddress = IPAddress.Parse(args.RemoteAddress.CanonicalName);

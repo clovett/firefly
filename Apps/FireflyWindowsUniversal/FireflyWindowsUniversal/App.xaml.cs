@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BleLights.SharedControls;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -40,6 +41,7 @@ namespace FireflyWindows
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
             Frame rootFrame = Window.Current.Content as Frame;
+            UiDispatcher.Initialize();
 
             // Do not repeat app initialization when the Window already has content,
             // just ensure that the window is active

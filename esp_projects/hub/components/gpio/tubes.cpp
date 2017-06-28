@@ -62,6 +62,8 @@ int Tubes::init()
     esp_err_t ret;
     gpio_config_t io_conf;    
 
+    ESP_LOGI(TAG, "init");
+    /*
     //spi configuration and setup
     spi_bus_config_t buscfg={
         .mosi_io_num=GPIO_MOSI,
@@ -99,6 +101,9 @@ int Tubes::init()
         ESP_LOGI(TAG, "spi_bus_add_device failed, ret=%d", ret);
         return ret;
     }
+*/
+
+    ESP_LOGI(TAG, "configure gpio output");
 
     //disable interrupt
     io_conf.intr_type = GPIO_INTR_DISABLE;
@@ -112,6 +117,8 @@ int Tubes::init()
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     //configure GPIO with the given settings
     gpio_config(&io_conf);
+
+    ESP_LOGI(TAG, "configure gpio input");
 
     //interrupt of rising edge
     io_conf.intr_type = GPIO_INTR_POSEDGE;
@@ -144,7 +151,7 @@ int Tubes::init()
     //hook isr handler for specific gpio pin again
     gpio_isr_handler_add(GPIO_NUM_0, gpio_isr_handler, (void*) GPIO_NUM_0);
 */
-
+    ESP_LOGI(TAG, "init complete");
     return 0;
 }
 

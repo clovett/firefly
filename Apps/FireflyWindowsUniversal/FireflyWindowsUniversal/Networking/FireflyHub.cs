@@ -96,7 +96,10 @@ namespace FireflyWindows
         public string RemotePort { get; internal set; }
         public string RemoteAddress { get; internal set; }
 
-        private TcpMessageStream socket;
+        // Tcp commented out until we figure out how to fix it.
+        // private TcpMessageStream socket;
+
+        UdpMessageStream socket;
         private bool running;
         private Queue<FireMessage> queue = new Queue<FireMessage>();
         ManualResetEvent available = new ManualResetEvent(false);
@@ -104,15 +107,29 @@ namespace FireflyWindows
 
         internal async Task ConnectAsync()
         {
-            socket = new TcpMessageStream(FireMessage.MessageLength);
-
-            await socket.ConnectAsync(
-                new IPEndPoint(IPAddress.Parse(LocalHost.CanonicalName), 0),
-                new IPEndPoint(IPAddress.Parse(RemoteAddress), int.Parse(RemotePort)));
+            //socket = new TcpMessageStream(FireMessage.MessageLength);
+            //
+            //await socket.ConnectAsync(
+            //    new IPEndPoint(IPAddress.Parse(LocalHost.CanonicalName), 0),
+            //    new IPEndPoint(IPAddress.Parse(RemoteAddress), int.Parse(RemotePort)));
+            socket = new UdpMessageStream();
+            socket.MessageReceived += OnUdpMessageReceived;
+            await socket.ConnectAsync(new EndpointPair(LocalHost, "0", new HostName(RemoteAddress), RemotePort), "");
 
             running = true;
             var nowait = Task.Run(new Action(ProcessMessages));
             nowait = Task.Run(new Action(Heartbeat));
+        }
+
+        private void OnUdpMessageReceived(object sender, Message message)
+        {
+            FireMessage response = FireMessage.Parse(message.Payload);
+            if (response != null && MessageReceived != null)
+            {
+                // relay the sent command back so we know what this is in response to.
+                // response.SentCommand = msg; no easy way to correlate the responses over UDP...
+                MessageReceived(this, response);
+            }
         }
 
         public event EventHandler<FireMessage> MessageReceived;
@@ -142,7 +159,15 @@ namespace FireflyWindows
             {
                 FireMessage msg = null;
                 FireMessage response = null;
-
+                int count = queue.Count;
+                using (queueLock)
+                {
+                    count = queue.Count; 
+                }
+                if (count == 0)
+                {
+                    available.WaitOne(1000);
+                }
                 using (queueLock)
                 {
                     if (queue.Count > 0)
@@ -151,8 +176,15 @@ namespace FireflyWindows
 
                         try
                         {
-                            byte[] result = socket.SendReceive(msg.ToArray());
-                            response = FireMessage.Parse(result);
+                            //byte[] result = socket.SendReceive(msg.ToArray());
+                            Debug.WriteLine("Sending message: " + msg.FireCommand);                                 
+                            if (!socket.SendAsync(msg.ToArray()).Wait(5000))
+                            {
+                                Debug.WriteLine("Timeout trying to send over UDP, should we retry?");
+                            }
+
+                            // tcp is synchronous request/response
+                            //response = FireMessage.Parse(result);
                         }
                         catch (Exception e)
                         {
@@ -178,8 +210,13 @@ namespace FireflyWindows
             while (running)
             {
                 SendMessage(new FireMessage() { FireCommand = FireCommand.Heartbeat });
-                await Task.Delay(1000);
+                await Task.Delay(10000);
             }
+        }
+
+        internal void GetInfo()
+        {
+            SendMessage(new FireMessage() { FireCommand = FireCommand.Info });
         }
     }
 }

@@ -192,7 +192,14 @@ void run(){
 
         Message response(msg, buffer, len);
         udp_stream.send_to(&response);
-
+      }
+      else if (msg->len == 5){
+        ESP_LOGI(TAG, "hack, received cmd (%d)", (int)msg->payload[0]);
+        // hack: since tcp is not working, we also support UDP...   
+        FireMessage fm(msg);
+        handle_command(fm);
+        Message response(msg, fm.pack(), FireflyCommandLength);
+        udp_stream.send_to(&response);        
       }
       delete msg;
     }
