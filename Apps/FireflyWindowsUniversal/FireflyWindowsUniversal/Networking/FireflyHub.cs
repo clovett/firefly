@@ -38,7 +38,7 @@ namespace FireflyWindows
         {
 
         }
-
+        
         public static FireMessage Parse(byte[] result)
         {
             FireMessage msg = null;
@@ -97,9 +97,7 @@ namespace FireflyWindows
         public string RemoteAddress { get; internal set; }
 
         // Tcp commented out until we figure out how to fix it.
-        // private TcpMessageStream socket;
-
-        UdpMessageStream socket;
+        private TcpMessageStream socket;
         private bool running;
         private Queue<FireMessage> queue = new Queue<FireMessage>();
         ManualResetEvent available = new ManualResetEvent(false);
@@ -107,18 +105,17 @@ namespace FireflyWindows
 
         internal async Task ConnectAsync()
         {
-            //socket = new TcpMessageStream(FireMessage.MessageLength);
-            //
-            //await socket.ConnectAsync(
-            //    new IPEndPoint(IPAddress.Parse(LocalHost.CanonicalName), 0),
-            //    new IPEndPoint(IPAddress.Parse(RemoteAddress), int.Parse(RemotePort)));
-            socket = new UdpMessageStream();
-            socket.MessageReceived += OnUdpMessageReceived;
-            await socket.ConnectAsync(new EndpointPair(LocalHost, "0", new HostName(RemoteAddress), RemotePort), "");
-
+            socket = new TcpMessageStream(FireMessage.MessageLength);
+            
+            await socket.ConnectAsync(
+                new IPEndPoint(IPAddress.Parse(LocalHost.CanonicalName), 0),
+                new IPEndPoint(IPAddress.Parse(RemoteAddress), int.Parse(RemotePort)));
             running = true;
             var nowait = Task.Run(new Action(ProcessMessages));
             nowait = Task.Run(new Action(Heartbeat));
+
+            // get tube count
+            GetInfo();
         }
 
         private void OnUdpMessageReceived(object sender, Message message)
@@ -131,6 +128,12 @@ namespace FireflyWindows
                 MessageReceived(this, response);
             }
         }
+
+        /// <summary>
+        /// Get or set the number of tubes
+        /// </summary>
+        public int Tubes { get; set; }
+        public DateTime LastHeartBeat { get; private set; }
 
         public event EventHandler<FireMessage> MessageReceived;
 
@@ -176,15 +179,10 @@ namespace FireflyWindows
 
                         try
                         {
-                            //byte[] result = socket.SendReceive(msg.ToArray());
-                            Debug.WriteLine("Sending message: " + msg.FireCommand);                                 
-                            if (!socket.SendAsync(msg.ToArray()).Wait(5000))
-                            {
-                                Debug.WriteLine("Timeout trying to send over UDP, should we retry?");
-                            }
-
+                            Debug.WriteLine("Sending message: " + msg.FireCommand);
+                            byte[] result = socket.SendReceive(msg.ToArray());
                             // tcp is synchronous request/response
-                            //response = FireMessage.Parse(result);
+                            response = FireMessage.Parse(result);
                         }
                         catch (Exception e)
                         {
@@ -196,14 +194,68 @@ namespace FireflyWindows
                     }
                 }
 
-                if (response != null && MessageReceived != null)
+                if (response != null)
                 {
-                    // relay the sent command back so we know what this is in response to.
                     response.SentCommand = msg;
-                    MessageReceived(this, response);
+                    HandleResponse(response);
                 }
             }
         }
+
+        private void HandleResponse(FireMessage response)
+        {
+            switch (response.SentCommand.FireCommand)
+            {
+                case FireCommand.None:
+                    break;
+                case FireCommand.Info:
+                    HandleInfoResponse(response);
+                    break;
+                case FireCommand.Fire:
+                    HandleFireResponse(response);
+                    break;
+                case FireCommand.Heartbeat:
+                    HandleHeartbeatResponse(response);
+                    break;
+                default:
+                    break;
+            }
+
+            // relay the sent command back so we know what this is in response to.
+            if (MessageReceived != null)
+            {
+                MessageReceived(this, response);
+            }
+        }
+
+        private void HandleHeartbeatResponse(FireMessage response)
+        {
+            LastHeartBeat = DateTime.Now;
+        }
+
+        private void HandleFireResponse(FireMessage response)
+        {
+            // todo
+        }
+
+        private void HandleInfoResponse(FireMessage response)
+        {
+            switch (response.FireCommand)
+            {
+                case FireCommand.Ack:
+                    Tubes = (response.Arg1 + (256 * response.Arg2));
+                    break;
+                case FireCommand.Nack:
+                    break;
+                case FireCommand.Timeout:
+                    break;
+                case FireCommand.Error:
+                    break;
+                default:
+                    break;
+            }
+        }
+
 
         private async void Heartbeat()
         {
@@ -217,6 +269,13 @@ namespace FireflyWindows
         internal void GetInfo()
         {
             SendMessage(new FireMessage() { FireCommand = FireCommand.Info });
+        }
+
+        internal void FireTube(int i)
+        {
+            byte arg1 = (byte)i;
+            byte arg2 = (byte)(i >> 8);
+            SendMessage(new FireMessage() { FireCommand = FireCommand.Fire, Arg1 = arg1, Arg2 = arg2 });
         }
     }
 }

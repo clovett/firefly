@@ -1,6 +1,8 @@
 ﻿using BleLights.SharedControls;
+using FireflyWindows.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -27,55 +29,30 @@ namespace FireflyWindows
     {
         FireflyHubLocator locator = new FireflyHubLocator();
         DelayedActions delayedActions = new DelayedActions();
+        ObservableCollection<HubModel> hubList = new ObservableCollection<HubModel>();
 
         public MainPage()
         {
             locator.HubAdded += OnFoundHub;
             this.InitializeComponent();
+            HubGrid.ItemsSource = hubList;
         }
 
         private async void OnFoundHub(object sender, FireflyHub e)
         {
             AddMessage("Found hub at " + e.RemoteAddress + ":" + e.RemotePort);
+            UiDispatcher.RunOnUIThread(() =>
+            {
+                hubList.Add(new HubModel(e));
+            });
 
             try
             {
-                e.MessageReceived += OnMessageReceived;
                 await e.ConnectAsync();
-                e.GetInfo();
             }
             catch (Exception ex)
             {
                 AddMessage("Connect failed: " + ex.Message);
-            }
-        }
-
-        private void OnMessageReceived(object sender, FireMessage e)
-        {
-            FireflyHub hub = (FireflyHub)sender;
-            switch (e.FireCommand)
-            {
-                case FireCommand.None:
-                    break;
-                case FireCommand.Info:
-                    // ok, what have we got, let's show this many tubes...
-                    break;
-                case FireCommand.Fire:
-                    break;
-                case FireCommand.Heartbeat:
-                    break;
-                case FireCommand.Ready:
-                    break;
-                case FireCommand.Ack:
-                    break;
-                case FireCommand.Nack:
-                    break;
-                case FireCommand.Timeout:
-                    break;
-                case FireCommand.Error:
-                    break;
-                default:
-                    break;
             }
         }
 
@@ -96,7 +73,6 @@ namespace FireflyWindows
 
         private void OnStop(object sender, RoutedEventArgs e)
         {
-
         }
 
         private void OnRefresh(object sender, RoutedEventArgs e)

@@ -6,76 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
-    <Page.Resources>
-        <Style TargetType="TextBlock">
-            <Setter Property="FontSize" Value="18"/>
-        </Style>
 
-        <!--Control colors.-->
-        <Color x:Key="ControlNormalColor">#FF000080</Color>
-        <Color x:Key="DisabledControlColor">#FFF2F2F2</Color>
-        <Color x:Key="DisabledForegroundColor">#FFBFBFBF</Color>
-        <Color x:Key="ControlPressedColor">Green</Color>
-        <SolidColorBrush x:Key="ForegroundBrush">#80C080</SolidColorBrush>
-
-
-        <!-- Button -->
-        <Style x:Key="TubeButton" TargetType="Button">
-            <Setter Property="Height" Value="100" />
-            <Setter Property="Width"  Value="100" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Background"  CornerRadius="50" BorderThickness="2" BorderBrush="{TemplateBinding Foreground}" 
-                                Padding="0" Margin="0" Background="{TemplateBinding Background}" >
-                            <Border x:Name="Border" 
-                                CornerRadius="50" BorderThickness="2" BorderBrush="{TemplateBinding Foreground}" >
-                                <Border.Background>
-                                    <SolidColorBrush Color="Transparent"/>
-                                </Border.Background>
-                                <VisualStateManager.VisualStateGroups>
-                                    <VisualStateGroup x:Name="CommonStates">
-                                        <VisualStateGroup.Transitions>
-                                            <VisualTransition GeneratedDuration="0:0:0.5" />
-                                            <VisualTransition GeneratedDuration="0" To="Pressed" />
-                                        </VisualStateGroup.Transitions>
-                                        <VisualState x:Name="Normal" />
-                                        <VisualState x:Name="Pressed">
-                                            <Storyboard>
-                                                <ColorAnimationUsingKeyFrames Storyboard.TargetProperty="(Panel.Background).(SolidColorBrush.Color)"
-                                                Storyboard.TargetName="Border"  >
-                                                    <EasingColorKeyFrame KeyTime="0" Value="{StaticResource ControlPressedColor}"  />
-                                                </ColorAnimationUsingKeyFrames>
-                                            </Storyboard>
-                                        </VisualState>
-                                        <VisualState x:Name="Disabled">
-                                            <Storyboard>
-                                                <ColorAnimationUsingKeyFrames Storyboard.TargetProperty="(Panel.Background).(SolidColorBrush.Color)"
-                                                Storyboard.TargetName="Border">
-                                                    <EasingColorKeyFrame KeyTime="0" Value="{StaticResource DisabledControlColor}" />
-                                                </ColorAnimationUsingKeyFrames>
-
-                                                <ColorAnimationUsingKeyFrames Storyboard.TargetProperty="(TextBlock.Foreground).(SolidColorBrush.Color)"
-                                                Storyboard.TargetName="Border">
-                                                    <EasingColorKeyFrame KeyTime="0" Value="{StaticResource DisabledForegroundColor}" />
-                                                </ColorAnimationUsingKeyFrames>
-                                            </Storyboard>
-                                        </VisualState>
-                                    </VisualStateGroup>
-                                </VisualStateManager.VisualStateGroups>
-                                <ContentPresenter Margin="2"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"/>        
-                            </Border>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-
-        </Style>
-
-
-    </Page.Resources>
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
@@ -86,6 +17,19 @@
         </Grid.RowDefinitions>
 
         <Image Grid.RowSpan="3" Source="Assets/fireworks.png" Opacity="0.5"/>
+
+        <GridView x:Name="HubGrid" >
+            <GridView.ItemTemplate>
+                <DataTemplate>
+                    <local:HubControl />
+                </DataTemplate>
+            </GridView.ItemTemplate>
+            <GridView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsWrapGrid/>
+                </ItemsPanelTemplate>
+            </GridView.ItemsPanel>
+        </GridView>
 
         <Border Grid.Row="2">
             <TextBlock x:Name="Messages" Foreground="Maroon" Text="" Margin="10" TextWrapping="NoWrap"/>

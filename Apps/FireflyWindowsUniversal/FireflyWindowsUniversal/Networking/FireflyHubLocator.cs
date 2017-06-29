@@ -20,6 +20,7 @@ namespace FireflyWindows
         internal const string UdpResponseMessage = "FIREFLY-HUB";
         Dictionary<string, UdpMessageStream> sockets = new Dictionary<string, UdpMessageStream>();
         Dictionary<string, FireflyHub> hubs = new Dictionary<string, FireflyHub>();
+        const int BroadcastDelay = 5000; // 5 seconds
 
         public event EventHandler<FireflyHub> HubAdded;
 
@@ -93,7 +94,7 @@ namespace FireflyWindows
                     }
                     try
                     {
-                        Task.Delay(3000).Wait(cancellationToken);
+                        Task.Delay(BroadcastDelay).Wait(cancellationToken);
                     }
                     catch
                     {
@@ -133,7 +134,7 @@ namespace FireflyWindows
                     parts[3] = "255";
                     broadcastAddr = string.Join(".", parts);
                 }
-                socket.ConnectAsync(new EndpointPair(hostName, m_portNumber.ToString(), new HostName(broadcastAddr), m_portNumber.ToString()), UdpBroadcastMessage);
+                await socket.ConnectAsync(new EndpointPair(hostName, m_portNumber.ToString(), new HostName(broadcastAddr), m_portNumber.ToString()), UdpBroadcastMessage);
             }
             await socket.SendAsync(UdpBroadcastMessage);
         }

@@ -103,6 +103,7 @@ void handle_command(FireMessage& msg)
     {
     case Info:
       // return number of tubes.
+      ESP_LOGI(TAG, "Info request");
       msg.command = Ack;
       msg.arg1 = MaxTubes;
       msg.arg2 = 0;
@@ -177,10 +178,11 @@ void run(){
     if (msg != NULL)
     {
       if (msg->is_tcp()){
+          ESP_LOGI(TAG, "received tcp message %d, type=%d",  msg->len, (int)msg->payload[0]);
           FireMessage fm(msg);
           handle_command(fm);
           Message response(msg, fm.pack(), FireflyCommandLength);
-          tcp_stream.send_reply(msg);
+          tcp_stream.send_reply(&response);
       }
       else if (strncmp(msg->payload, FIND_HUB_BROADCAST, msg->len) == 0)
       {
@@ -193,14 +195,7 @@ void run(){
         Message response(msg, buffer, len);
         udp_stream.send_to(&response);
       }
-      else if (msg->len == 5){
-        ESP_LOGI(TAG, "hack, received cmd (%d)", (int)msg->payload[0]);
-        // hack: since tcp is not working, we also support UDP...   
-        FireMessage fm(msg);
-        handle_command(fm);
-        Message response(msg, fm.pack(), FireflyCommandLength);
-        udp_stream.send_to(&response);        
-      }
+
       delete msg;
     }
     else

@@ -73,7 +73,7 @@ void UdpMessageStream::monitor(){
     }
 
     addr = addr_to_string( &serverAddress);
-    ESP_LOGI(TAG, "received msg from  %s", addr);
+    ESP_LOGI(TAG, "received msg len %d from  %s", rc, addr);
 
     //localAddress.sin_addr.s_addr = this->local_ip.u_addr.ip4.addr;
     Message* msg = new Message(&localAddress, &serverAddress, buffer, rc);

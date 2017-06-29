@@ -48,6 +48,7 @@ namespace FireflyWindows.Networking
                 socket = null;
             }
         }
+
         internal static byte[] StringToAnsiiBytes(string s)
         {
             byte[] buffer = new byte[s.Length];
