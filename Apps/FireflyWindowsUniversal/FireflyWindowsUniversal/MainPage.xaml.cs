@@ -36,6 +36,18 @@ namespace FireflyWindows
             locator.HubAdded += OnFoundHub;
             this.InitializeComponent();
             HubGrid.ItemsSource = hubList;
+            Windows.Networking.Connectivity.NetworkInformation.NetworkStatusChanged += OnNetworkStatusChange;
+            CheckNetworkStatus();
+        }
+
+        private void OnNetworkStatusChange(object sender)
+        {
+            CheckNetworkStatus();
+        }
+
+        void CheckNetworkStatus()
+        {
+            
         }
 
         private async void OnFoundHub(object sender, FireflyHub e)
@@ -77,7 +89,8 @@ namespace FireflyWindows
 
         private void OnRefresh(object sender, RoutedEventArgs e)
         {
-
+            hubList.Clear();
+            locator.Reset();
         }
 
         private void OnPause(object sender, RoutedEventArgs e)

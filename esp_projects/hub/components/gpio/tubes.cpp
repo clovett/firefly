@@ -155,21 +155,19 @@ int Tubes::init()
     return 0;
 }
 
+void Tubes::arm(bool on)
+{
+    gpio_set_level(EN_RELAY, on ? 1 : 0);
+}
 
 void Tubes::fire(int tube)
 {
-    gpio_set_level(EN_RELAY, 1);
-
     if (tube < NUM_GPIO) {
       int io = tube_list[tube];
-      color(tube, 255, 0, 0);
       gpio_set_level((gpio_num_t)io, 1);   
       vTaskDelay(FUSE_BURN_TIME / portTICK_PERIOD_MS);
       gpio_set_level((gpio_num_t)io, 0);
-      color(tube, 0, 0, 0);
     }
-
-    gpio_set_level(EN_RELAY, 0);
 }
 
 int Tubes::sense(int tube)

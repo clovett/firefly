@@ -11,6 +11,8 @@ public:
 
     int init();
 
+    void arm(bool on);
+
     void fire(int tube);
 
     int sense(int tube);

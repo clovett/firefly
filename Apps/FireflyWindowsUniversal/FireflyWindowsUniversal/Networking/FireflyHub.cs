@@ -22,7 +22,8 @@ namespace FireflyWindows
         Ack = 'A',
         Nack = 'N',
         Timeout = 'T',
-        Error = 'E'
+        Error = 'E',
+        Arm = 'X'
     }
 
     class FireMessage
@@ -103,10 +104,13 @@ namespace FireflyWindows
         ManualResetEvent available = new ManualResetEvent(false);
         Mutex queueLock = new Mutex();
 
+        public event EventHandler<Exception> TcpError;
+
         internal async Task ConnectAsync()
         {
             socket = new TcpMessageStream(FireMessage.MessageLength);
-            
+            socket.Error += OnSocketError;
+
             await socket.ConnectAsync(
                 new IPEndPoint(IPAddress.Parse(LocalHost.CanonicalName), 0),
                 new IPEndPoint(IPAddress.Parse(RemoteAddress), int.Parse(RemotePort)));
@@ -116,6 +120,15 @@ namespace FireflyWindows
 
             // get tube count
             GetInfo();
+            Arm();
+        }
+
+        private void OnSocketError(object sender, Exception e)
+        {
+            if (TcpError != null)
+            {
+                TcpError(this, e);
+            }
         }
 
         private void OnUdpMessageReceived(object sender, Message message)
@@ -176,20 +189,22 @@ namespace FireflyWindows
                     if (queue.Count > 0)
                     {
                         msg = queue.Dequeue();
-
-                        try
+                        if (msg != null)
                         {
-                            Debug.WriteLine("Sending message: " + msg.FireCommand);
-                            byte[] result = socket.SendReceive(msg.ToArray());
-                            // tcp is synchronous request/response
-                            response = FireMessage.Parse(result);
-                        }
-                        catch (Exception e)
-                        {
-                            response = new FireflyWindows.FireMessage()
+                            try
                             {
-                                Error = e
-                            };
+                                Debug.WriteLine("Sending message: " + msg.FireCommand);
+                                byte[] result = socket.SendReceive(msg.ToArray());
+                                // tcp is synchronous request/response
+                                response = FireMessage.Parse(result);
+                            }
+                            catch (Exception e)
+                            {
+                                response = new FireflyWindows.FireMessage()
+                                {
+                                    Error = e
+                                };
+                            }
                         }
                     }
                 }
@@ -269,6 +284,14 @@ namespace FireflyWindows
         internal void GetInfo()
         {
             SendMessage(new FireMessage() { FireCommand = FireCommand.Info });
+        }
+        internal void Arm()
+        {
+            SendMessage(new FireMessage() { FireCommand = FireCommand.Arm, Arg1 = 1 });
+        }
+        internal void Disarm()
+        {
+            SendMessage(new FireMessage() { FireCommand = FireCommand.Arm, Arg1 = 0 });
         }
 
         internal void FireTube(int i)

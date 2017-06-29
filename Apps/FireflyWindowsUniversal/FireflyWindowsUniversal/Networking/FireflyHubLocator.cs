@@ -108,6 +108,14 @@ namespace FireflyWindows
             }
         }
 
+        internal void Reset()
+        {
+            lock (hubs)
+            {
+                hubs.Clear();
+            }
+        }
+
         private async Task SendUdpPing(HostName hostName)
         {
             Debug.WriteLine(DateTime.Now.ToString("T") + ": SendUdpPing");

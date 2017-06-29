@@ -36,7 +36,7 @@ namespace FireflyWindows
             if (hub != null && tube != null)
             {
                 int i = hub.Tubes.IndexOf(tube);
-                if (i > 0)
+                if (i >= 0)
                 {
                     hub.Hub.FireTube(i);
                 }

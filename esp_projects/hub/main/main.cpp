@@ -49,6 +49,7 @@ enum FireflyCommand
     Info = 'I',
     Fire = 'F',
     Heartbeat = 'H',
+    Arm = 'X',
     // responses
     Ready = 'R',
     Ack = 'A',
@@ -117,6 +118,12 @@ void handle_command(FireMessage& msg)
         msg.arg1 = 0;
         msg.arg2 = 0;
         break;
+    case Arm:// arm the hub !
+        ESP_LOGI(TAG, "arming tubes %d", msg.arg1);
+        msg.command = Ack;
+        tubes.arm(msg.arg1 == 1 ? true : false);
+        break;
+        
     case Fire:
         // fire !
         tube = msg.tube();
@@ -150,7 +157,7 @@ void handle_command(FireMessage& msg)
 void run(){
 
   Wifi wifi;
-  LedController led;
+  //LedController led;
 
   tubes.init();
 
@@ -167,7 +174,7 @@ void run(){
   TcpMessageStream tcp_stream(&queue, local_ip);
   tcp_stream.start_listening(FireflyTcpPort);
 
-  led.start_led_task();
+  //led.start_led_task();
 
   ESP_LOGI(TAG, "bootstrap complete.");
 
