@@ -107,5 +107,13 @@ namespace FireflyWindows
         {
 
         }
+
+        private void OnArm(object sender, RoutedEventArgs e)
+        {
+            foreach(var hub in this.hubList)
+            {
+                hub.Hub.Arm(!hub.Hub.Armed);
+            }
+        }
     }
 }

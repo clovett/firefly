@@ -112,6 +112,10 @@ namespace FireflyWindows
         {
             lock (hubs)
             {
+                foreach (var item in hubs.Values)
+                {
+                    item.Close();
+                }
                 hubs.Clear();
             }
         }

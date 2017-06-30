@@ -16,6 +16,17 @@
     <SolidColorBrush x:Key="TubeDisabledForegroundBrush" Color="#FFBFBFBF"/>
     <SolidColorBrush x:Key="TubePressedBrush" Color="Green"/>
 
+    <Style x:Key="BasicTextStyle" TargetType="TextBlock">
+        <!--<Setter Property="Foreground" Value="{StaticResource ApplicationForegroundThemeBrush}"/>-->
+        <Setter Property="FontSize" Value="{StaticResource ControlContentThemeFontSize}"/>
+        <Setter Property="FontFamily" Value="{StaticResource ContentControlThemeFontFamily}"/>
+        <Setter Property="TextTrimming" Value="WordEllipsis"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Typography.StylisticSet20" Value="True"/>
+        <Setter Property="Typography.DiscretionaryLigatures" Value="True"/>
+        <Setter Property="Typography.CaseSensitiveForms" Value="True"/>
+    </Style>
+    
     <!-- Button -->
     <Style x:Key="TubeButton" TargetType="Button">
         <Setter Property="Height" Value="50" />
@@ -70,8 +81,13 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
-
     </Style>
 
 
+    <Style x:Key="ArmAppBarButtonStyle" TargetType="AppBarButton">
+        <Setter Property="AutomationProperties.AutomationId" Value="SkipBackAppBarButton"/>
+        <Setter Property="AutomationProperties.Name" Value="Skip Back"/>
+        <Setter Property="Content" Value="&#xE284;"/>
+    </Style>
+    
 </ResourceDictionary>

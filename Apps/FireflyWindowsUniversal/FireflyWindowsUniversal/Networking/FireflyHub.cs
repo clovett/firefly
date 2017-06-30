@@ -100,6 +100,7 @@ namespace FireflyWindows
         // Tcp commented out until we figure out how to fix it.
         private TcpMessageStream socket;
         private bool running;
+        bool armed;
         private Queue<FireMessage> queue = new Queue<FireMessage>();
         ManualResetEvent available = new ManualResetEvent(false);
         Mutex queueLock = new Mutex();
@@ -120,7 +121,6 @@ namespace FireflyWindows
 
             // get tube count
             GetInfo();
-            Arm();
         }
 
         private void OnSocketError(object sender, Exception e)
@@ -154,6 +154,10 @@ namespace FireflyWindows
         {
             running = false;
             available.Set();
+            if (socket != null)
+            {
+                socket.Dispose();
+            }
         }
 
         public void SendMessage(FireMessage f)
@@ -277,7 +281,7 @@ namespace FireflyWindows
             while (running)
             {
                 SendMessage(new FireMessage() { FireCommand = FireCommand.Heartbeat });
-                await Task.Delay(10000);
+                await Task.Delay(3000);
             }
         }
 
@@ -285,13 +289,13 @@ namespace FireflyWindows
         {
             SendMessage(new FireMessage() { FireCommand = FireCommand.Info });
         }
-        internal void Arm()
+
+        public bool Armed {  get { return this.armed; } }
+
+        internal void Arm(bool arm)
         {
-            SendMessage(new FireMessage() { FireCommand = FireCommand.Arm, Arg1 = 1 });
-        }
-        internal void Disarm()
-        {
-            SendMessage(new FireMessage() { FireCommand = FireCommand.Arm, Arg1 = 0 });
+            armed = arm;
+            SendMessage(new FireMessage() { FireCommand = FireCommand.Arm, Arg1 = arm ? (byte)1 : (byte)0 });
         }
 
         internal void FireTube(int i)

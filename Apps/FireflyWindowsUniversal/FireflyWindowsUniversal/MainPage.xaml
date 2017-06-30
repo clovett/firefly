@@ -38,6 +38,9 @@
 
     <Page.BottomAppBar>
         <CommandBar>
+            <AppBarButton x:Name="ArmButton" Icon="Favorite" Click="OnArm" HorizontalAlignment="Left"
+                                Style="{StaticResource ArmAppBarButtonStyle}"/>
+            
             <AppBarButton x:Name="PlayButton" Icon="Play" Click="OnPlay"/>
             <AppBarButton x:Name="StopButton" Icon="Stop" Click="OnStop"/>
             <AppBarButton x:Name="PauseButton" Icon="Pause" Click="OnPause"/>

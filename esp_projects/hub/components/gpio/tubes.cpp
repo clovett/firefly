@@ -3,7 +3,6 @@
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-#include "driver/spi_master.h"
 #include "tubes.hpp"
 #include <string.h>
 
@@ -15,13 +14,7 @@ static const char *TAG = "tubes";
 #define GPIO_INPUT_PIN_SEL  0xC0A609014//(((uint64_t)1<<GPIO_NUM_0) | ((uint64_t)1<<GPIO_NUM_1))
 #define ESP_INTR_FLAG_DEFAULT 0
 
-#define GPIO_MOSI 1//3 // RX
-#define GPIO_SCLK 3//1 // TX
-
-#define NUM_LEDS 12
-#define SPI_BUFLEN 4*(NUM_LEDS+1) //+1 for the leading empty header
-
-static xQueueHandle gpio_evt_queue = NULL;
+//static xQueueHandle gpio_evt_queue = NULL;
 
 #define EN_RELAY GPIO_NUM_16
 #define NUM_GPIO 10
@@ -59,50 +52,9 @@ Tubes::Tubes(){
 
 int Tubes::init()
 {
-    esp_err_t ret;
     gpio_config_t io_conf;    
 
     ESP_LOGI(TAG, "init");
-    /*
-    //spi configuration and setup
-    spi_bus_config_t buscfg={
-        .mosi_io_num=GPIO_MOSI,
-        .miso_io_num=-1,
-        .sclk_io_num=GPIO_SCLK,
-        .quadwp_io_num=-1,
-        .quadhd_io_num=-1,
-        .max_transfer_sz = 0
-    };
-
-    //Configuration for the SPI device on the other side of the bus
-    spi_device_interface_config_t devcfg;
-    devcfg.command_bits=0;
-    devcfg.address_bits=0;
-    devcfg.dummy_bits=0;
-    devcfg.mode=0;
-    devcfg.duty_cycle_pos=128;        //50% duty cycle
-    devcfg.cs_ena_pretrans=0;
-    devcfg.cs_ena_posttrans=3;        //Keep the CS low 3 cycles after transaction, to stop slave from missing the last bit when CS has less propagation delay than CLK
-    devcfg.clock_speed_hz=5000000;
-    devcfg.spics_io_num=-1;
-    devcfg.flags = 0;
-    devcfg.pre_cb = NULL;
-    devcfg.post_cb = NULL;
-    devcfg.queue_size=3;
-
-
-    ret=spi_bus_initialize(HSPI_HOST, &buscfg, 1);
-    if (ret != ESP_OK){
-        ESP_LOGI(TAG, "spi_bus_initialize failed, ret=%d", ret);
-        return ret;
-    }
-    ret=spi_bus_add_device(HSPI_HOST, &devcfg, &handle);
-    if (ret != ESP_OK){
-        ESP_LOGI(TAG, "spi_bus_add_device failed, ret=%d", ret);
-        return ret;
-    }
-*/
-
     ESP_LOGI(TAG, "configure gpio output");
 
     //disable interrupt
@@ -174,24 +126,4 @@ int Tubes::sense(int tube)
 {
     // todo
     return 0;
-}
-
-void Tubes::color(int tube, int red, int green, int blue)
-{
-    char sendbuf[SPI_BUFLEN] = {0};
-    spi_transaction_t t;
-    memset(&t, 0, sizeof(t));
-    esp_err_t ret;
-
-    sendbuf[(tube+1)*4] = 0xFF;
-    sendbuf[(tube+1)*4+1] = red;
-    sendbuf[(tube+1)*4+2] = green;
-    sendbuf[(tube+1)*4+3] = blue;
-
-    t.length=SPI_BUFLEN*8; //BUFLEN bytes
-    t.tx_buffer=sendbuf;
-    ret=spi_device_transmit(handle, &t);
-    if (ret != 0){        
-        ESP_LOGI(TAG, "spi_device_transmit failed, ret=%d", ret);
-    }
 }

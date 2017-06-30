@@ -30,6 +30,8 @@ const uint8_t HeaderByte = 0xfe;
 const int FireflyCommandLength = 5;
 const int MaxTubes = 10;
 
+Wifi wifi;
+LedController led;
 Tubes tubes;
 
 static uint8_t Crc(char* buffer, int offset, int len)
@@ -68,7 +70,7 @@ public:
     uint8_t crc= 0;
     bool crc_valid = false;
 
-    FireMessage(Message* msg){      
+    FireMessage(Message* msg) {      
       if (msg->len == FireflyCommandLength) {
           header_byte = (uint8_t)msg->payload[0];
           command = (FireflyCommand)msg->payload[1];
@@ -120,8 +122,13 @@ void handle_command(FireMessage& msg)
         break;
     case Arm:// arm the hub !
         ESP_LOGI(TAG, "arming tubes %d", msg.arg1);
-        msg.command = Ack;
+        msg.command = Ack;        
         tubes.arm(msg.arg1 == 1 ? true : false);
+        if (msg.arg1 == 1){
+          led.ramp(255,0,0,1000);
+        } else {
+          led.off();
+        }
         break;
         
     case Fire:
@@ -156,8 +163,7 @@ void handle_command(FireMessage& msg)
 
 void run(){
 
-  Wifi wifi;
-  //LedController led;
+  ESP_LOGI(TAG, "portTICK_PERIOD_MS=%d", (int)portTICK_PERIOD_MS);
 
   tubes.init();
 
@@ -174,7 +180,8 @@ void run(){
   TcpMessageStream tcp_stream(&queue, local_ip);
   tcp_stream.start_listening(FireflyTcpPort);
 
-  //led.start_led_task();
+  led.init();
+  led.off();
 
   ESP_LOGI(TAG, "bootstrap complete.");
 

@@ -17,9 +17,6 @@ public:
 
     int sense(int tube);
 
-    void color(int tube, int red, int green, int blue);
-private:    
-    spi_device_handle_t handle;
 };
 
 #endif

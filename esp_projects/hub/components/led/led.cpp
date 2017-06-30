@@ -2,17 +2,26 @@ extern "C" {
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
+#include "driver/spi_master.h"
 #include "esp_log.h"
 }
 #include "led.hpp"
-static const char *TAG = "led";
+#include <string.h>
 
-/* Can run 'make menuconfig' to choose the GPIO to blink,
-   or you can edit the following line and set a number here.
-*/
-gpio_num_t BLINK_GPIO = GPIO_NUM_19;
- 
-void led_blink_task(void *pvParameter)
+static const char *TAG = "led";
+#define GPIO_MOSI 1//3 // RX
+#define GPIO_SCLK 3//1 // TX
+
+#define NUM_LEDS 12
+#define SPI_BUFLEN 4*(NUM_LEDS+1) //+1 for the leading empty header
+
+spi_device_handle_t handle;
+
+// This code is for controlling a strip of LED's using WS2812 chip from http://www.world-semi.com/
+// See datasheet:
+// https://cdn.sparkfun.com/datasheets/Components/LED/WS2812.pdf
+
+void led_task(void *pvParameter)
 {
     if (pvParameter != NULL){
         LedController* controller = (LedController*)pvParameter;
@@ -20,31 +29,182 @@ void led_blink_task(void *pvParameter)
     }
 }
 
+
+void LedController::init()
+{
+    this->red = 0;
+    this->green = 0;
+    this->blue = 0;
+
+    ESP_LOGI(TAG, "LedController::init");
+    //spi configuration and setup
+    spi_bus_config_t buscfg={
+        .mosi_io_num=GPIO_MOSI,
+        .miso_io_num=-1,
+        .sclk_io_num=GPIO_SCLK,
+        .quadwp_io_num=-1,
+        .quadhd_io_num=-1,
+        .max_transfer_sz = 0
+    };
+
+    //Configuration for the SPI device on the other side of the bus
+    spi_device_interface_config_t devcfg;
+    devcfg.command_bits=0;
+    devcfg.address_bits=0;
+    devcfg.dummy_bits=0;
+    devcfg.mode=0;
+    devcfg.duty_cycle_pos=128;        //50% duty cycle
+    devcfg.cs_ena_pretrans=0;
+    devcfg.cs_ena_posttrans=3;        //Keep the CS low 3 cycles after transaction, to stop slave from missing the last bit when CS has less propagation delay than CLK
+    devcfg.clock_speed_hz=5000000;
+    devcfg.spics_io_num=-1;
+    devcfg.flags = 0;
+    devcfg.pre_cb = NULL;
+    devcfg.post_cb = NULL;
+    devcfg.queue_size=3;
+    
+    ESP_LOGI(TAG, "spi_bus_initialize");
+    esp_err_t ret=spi_bus_initialize(HSPI_HOST, &buscfg, 1);
+    if (ret != ESP_OK){
+        ESP_LOGI(TAG, "spi_bus_initialize failed, ret=%d", ret);
+        return;
+    }
+
+    ESP_LOGI(TAG, "spi_bus_add_device");
+    ret=spi_bus_add_device(HSPI_HOST, &devcfg, &handle);
+    if (ret != ESP_OK){
+        ESP_LOGI(TAG, "spi_bus_add_device failed, ret=%d", ret);
+        return;
+    }
+
+    xTaskCreate(&led_task, "led_task", 2048, this, 5, NULL);
+
+}
+
+void LedController::off() 
+{
+    this->cmd = AllOff;
+}
+
+void LedController::color(uint8_t red, uint8_t green,uint8_t blue)
+{
+    this->red = red;
+    this->green = green;
+    this->blue = blue;
+    this->cmd = SetColor;
+    this->count = 0;
+    this->milliseconds = 0;
+}
+
+void LedController::ramp(uint8_t red, uint8_t green,uint8_t blue, int milliseconds)
+{
+    this->start_red = this->red;
+    this->start_green = this->green;
+    this->start_blue= this->blue;
+    this->target_red = red;
+    this->target_green = green;
+    this->target_blue = blue;
+    this->cmd = RampColor;
+    this->count = 0;
+    this->milliseconds = milliseconds;
+}
+void LedController::blink(uint8_t red, uint8_t green,uint8_t blue, int milliseconds)
+{
+    this->red = red;
+    this->green = green;
+    this->blue = blue;
+    this->cmd = Blink;
+    this->count = 0;
+    this->milliseconds = milliseconds;
+}
+
 void LedController::run()
 {
     ESP_LOGI(TAG, "led task running.");
-    /* Configure the IOMUX register for pad BLINK_GPIO (some pads are
-       muxed to GPIO on reset already, but some default to other
-       functions and need to be switched to GPIO. Consult the
-       Technical Reference for a list of pads and their default
-       functions.)
-    */
-    gpio_pad_select_gpio(BLINK_GPIO);
-    /* Set the GPIO as a push/pull output */
-    gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
     while(1) {
-        /* Blink off (output low) */
-        gpio_set_level(BLINK_GPIO, 0);
-        vTaskDelay(200 / portTICK_PERIOD_MS);
-        /* Blink on (output high) */
-        gpio_set_level(BLINK_GPIO, 1);
-        vTaskDelay(200 / portTICK_PERIOD_MS);
+        switch (cmd){
+            case None:
+                vTaskDelay(20 / portTICK_PERIOD_MS);
+                break;
+            case AllOff:
+                allOff();
+                vTaskDelay(20 / portTICK_PERIOD_MS);
+                break;
+            case SetColor:
+                color();
+                vTaskDelay(20 / portTICK_PERIOD_MS);
+                break;
+            case RampColor:
+                ramp();
+                break;
+            case Blink:
+                blink();
+            break;
+        }
     }
 	vTaskDelete(NULL);
 }
 
-void LedController::start_led_task()
+void LedController::allOff()
 {
-    xTaskCreate(&led_blink_task, "led_blink_task", 2048, this, 5, NULL);
+    this->red = 0;
+    this->green = 0;
+    this->blue = 0;
+    color();
 }
 
+uint8_t interpolate_color(uint8_t start, uint8_t end, float percent)
+{
+    return (uint8_t)((float)start + (((float)end - (float)start) * percent));
+}
+
+void LedController::ramp()
+{
+    float percent =  (float)count / (float)milliseconds;
+    if (milliseconds == 0) {
+        percent = 1;
+    }
+    this->red = interpolate_color(this->start_red, this->target_red, percent);
+    this->green = interpolate_color(this->start_green, this->start_green, percent);
+    this->blue = interpolate_color(this->start_blue, this->start_blue, percent);
+    color();
+    count++;
+    if (count == milliseconds){
+        // done!
+        cmd = None;
+    }
+
+    vTaskDelay(1);
+}
+
+void LedController::blink()
+{
+    off();
+    vTaskDelay(milliseconds / portTICK_PERIOD_MS);
+    color();
+    vTaskDelay(milliseconds / portTICK_PERIOD_MS);
+}
+
+void LedController::color()
+{
+    char sendbuf[SPI_BUFLEN] = {0};
+    spi_transaction_t t;
+    memset(&t, 0, sizeof(t));
+    esp_err_t ret;
+    
+
+    for(int i = 0; i < NUM_LEDS; i++)
+    {
+        int index = (i+1)*4;
+        sendbuf[index] = 0xFF;
+        sendbuf[index + 1] = red;
+        sendbuf[index + 2] = green;
+        sendbuf[index + 3] = blue;
+    }
+    t.length = SPI_BUFLEN * 8; //BUFLEN bytes
+    t.tx_buffer = sendbuf;
+    ret = spi_device_transmit(handle, &t);
+    if (ret != 0){        
+        ESP_LOGI(TAG, "spi_device_transmit failed, ret=%d", ret);
+    }
+}
