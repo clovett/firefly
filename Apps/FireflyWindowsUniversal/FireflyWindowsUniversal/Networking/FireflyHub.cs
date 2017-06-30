@@ -11,86 +11,6 @@ using Windows.Networking;
 
 namespace FireflyWindows
 {
-    enum FireCommand
-    {
-        None,
-        Info = 'I',
-        Fire = 'F',
-        Heartbeat = 'H',
-        // responses
-        Ready = 'R',
-        Ack = 'A',
-        Nack = 'N',
-        Timeout = 'T',
-        Error = 'E',
-        Arm = 'X'
-    }
-
-    class FireMessage
-    {
-        public FireCommand FireCommand;
-        public byte Arg1;
-        public byte Arg2;
-        public FireMessage SentCommand;
-        public Exception Error;
-        const byte HeaderByte = 0xfe;
-
-        public FireMessage()
-        {
-
-        }
-        
-        public static FireMessage Parse(byte[] result)
-        {
-            FireMessage msg = null;
-            if (result != null && result.Length == FireMessage.MessageLength && 
-                result[0] == HeaderByte)
-            {   
-                if (Crc(result,0,4) == result[4])
-                {
-                    msg = new FireMessage()
-                    {
-                        FireCommand = (FireCommand)result[1],
-                        Arg1 = result[2],
-                        Arg2 = result[3]
-                    };
-                }
-                else
-                {
-                    Debug.WriteLine("CRC failed");
-                }                
-            }
-            return msg;
-        }
-
-        public static int MessageLength
-        {
-            get { return 5; }
-        }
-
-        public byte[] ToArray()
-        {
-            byte[] buffer = new byte[MessageLength];
-            buffer[0] = HeaderByte;
-            buffer[1] = (byte)FireCommand;
-            buffer[2] = Arg1;
-            buffer[3] = Arg2;
-            buffer[4] = Crc(buffer, 0, 4);
-            return buffer;
-        }
-        private static byte Crc(byte[] buffer, int offset, int len)
-        {
-            byte crc = 0;
-            for (int i = offset; i < len; i++)
-            {
-                byte c = buffer[i];
-                crc = (byte)((crc >> 1) ^ c);
-            }
-            return crc;
-        }
-
-    }
-
     class FireflyHub
     {
         public HostName LocalHost { get; internal set; }
@@ -100,16 +20,18 @@ namespace FireflyWindows
         // Tcp commented out until we figure out how to fix it.
         private TcpMessageStream socket;
         private bool running;
+        bool closing;
         bool armed;
-        private Queue<FireMessage> queue = new Queue<FireMessage>();
+        private Queue<FireflyMessage> queue = new Queue<FireflyMessage>();
         ManualResetEvent available = new ManualResetEvent(false);
+        ManualResetEvent queueEmpty = new ManualResetEvent(false);
         Mutex queueLock = new Mutex();
 
         public event EventHandler<Exception> TcpError;
 
         internal async Task ConnectAsync()
         {
-            socket = new TcpMessageStream(FireMessage.MessageLength);
+            socket = new TcpMessageStream(FireflyMessage.MessageLength);
             socket.Error += OnSocketError;
 
             await socket.ConnectAsync(
@@ -133,7 +55,7 @@ namespace FireflyWindows
 
         private void OnUdpMessageReceived(object sender, Message message)
         {
-            FireMessage response = FireMessage.Parse(message.Payload);
+            FireflyMessage response = FireflyMessage.Parse(message.Payload);
             if (response != null && MessageReceived != null)
             {
                 // relay the sent command back so we know what this is in response to.
@@ -148,10 +70,16 @@ namespace FireflyWindows
         public int Tubes { get; set; }
         public DateTime LastHeartBeat { get; private set; }
 
-        public event EventHandler<FireMessage> MessageReceived;
+        public event EventHandler<FireflyMessage> MessageReceived;
 
         public void Close()
         {
+            closing = true;
+            Arm(false);
+            if (!queueEmpty.WaitOne(5000))
+            {
+                Debug.WriteLine("{0}: Timeout 5 seconds waiting for queue to drain", this.RemoteAddress);
+            }
             running = false;
             available.Set();
             if (socket != null)
@@ -160,10 +88,11 @@ namespace FireflyWindows
             }
         }
 
-        public void SendMessage(FireMessage f)
+        public void SendMessage(FireflyMessage f)
         {
             using (queueLock)
             {
+                queueEmpty.Reset();
                 int count = queue.Count;
                 queue.Enqueue(f);
                 if (count == 0)
@@ -175,10 +104,11 @@ namespace FireflyWindows
 
         private void ProcessMessages()
         {
+            bool postedEmpty = false;
             while (running)
             {
-                FireMessage msg = null;
-                FireMessage response = null;
+                FireflyMessage msg = null;
+                FireflyMessage response = null;
                 int count = queue.Count;
                 using (queueLock)
                 {
@@ -192,24 +122,30 @@ namespace FireflyWindows
                 {
                     if (queue.Count > 0)
                     {
+                        postedEmpty = false;
                         msg = queue.Dequeue();
                         if (msg != null)
                         {
                             try
                             {
-                                Debug.WriteLine("Sending message: " + msg.FireCommand);
+                                Debug.WriteLine("{0}: Sending message: {1}", this.RemoteAddress, msg.FireCommand);
                                 byte[] result = socket.SendReceive(msg.ToArray());
                                 // tcp is synchronous request/response
-                                response = FireMessage.Parse(result);
+                                response = FireflyMessage.Parse(result);
                             }
                             catch (Exception e)
                             {
-                                response = new FireflyWindows.FireMessage()
+                                response = new FireflyMessage()
                                 {
                                     Error = e
                                 };
                             }
                         }
+                    }
+                    else if (!postedEmpty)
+                    {
+                        postedEmpty = true;
+                        queueEmpty.Set();
                     }
                 }
 
@@ -219,21 +155,22 @@ namespace FireflyWindows
                     HandleResponse(response);
                 }
             }
+            Debug.WriteLine("{0}: Message processing thread terminating", this.RemoteAddress);
         }
 
-        private void HandleResponse(FireMessage response)
+        private void HandleResponse(FireflyMessage response)
         {
             switch (response.SentCommand.FireCommand)
             {
-                case FireCommand.None:
+                case FireflyCommand.None:
                     break;
-                case FireCommand.Info:
+                case FireflyCommand.Info:
                     HandleInfoResponse(response);
                     break;
-                case FireCommand.Fire:
+                case FireflyCommand.Fire:
                     HandleFireResponse(response);
                     break;
-                case FireCommand.Heartbeat:
+                case FireflyCommand.Heartbeat:
                     HandleHeartbeatResponse(response);
                     break;
                 default:
@@ -247,28 +184,28 @@ namespace FireflyWindows
             }
         }
 
-        private void HandleHeartbeatResponse(FireMessage response)
+        private void HandleHeartbeatResponse(FireflyMessage response)
         {
             LastHeartBeat = DateTime.Now;
         }
 
-        private void HandleFireResponse(FireMessage response)
+        private void HandleFireResponse(FireflyMessage response)
         {
             // todo
         }
 
-        private void HandleInfoResponse(FireMessage response)
+        private void HandleInfoResponse(FireflyMessage response)
         {
             switch (response.FireCommand)
             {
-                case FireCommand.Ack:
+                case FireflyCommand.Ack:
                     Tubes = (response.Arg1 + (256 * response.Arg2));
                     break;
-                case FireCommand.Nack:
+                case FireflyCommand.Nack:
                     break;
-                case FireCommand.Timeout:
+                case FireflyCommand.Timeout:
                     break;
-                case FireCommand.Error:
+                case FireflyCommand.Error:
                     break;
                 default:
                     break;
@@ -278,16 +215,17 @@ namespace FireflyWindows
 
         private async void Heartbeat()
         {
-            while (running)
+            while (running && !closing)
             {
-                SendMessage(new FireMessage() { FireCommand = FireCommand.Heartbeat });
+                SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Heartbeat });
                 await Task.Delay(3000);
             }
+            Debug.WriteLine("{0}: Heartbeat thread terminating", this.RemoteAddress);
         }
 
         internal void GetInfo()
         {
-            SendMessage(new FireMessage() { FireCommand = FireCommand.Info });
+            SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Info });
         }
 
         public bool Armed {  get { return this.armed; } }
@@ -295,14 +233,14 @@ namespace FireflyWindows
         internal void Arm(bool arm)
         {
             armed = arm;
-            SendMessage(new FireMessage() { FireCommand = FireCommand.Arm, Arg1 = arm ? (byte)1 : (byte)0 });
+            SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Arm, Arg1 = arm ? (byte)1 : (byte)0 });
         }
 
         internal void FireTube(int i)
         {
             byte arg1 = (byte)i;
             byte arg2 = (byte)(i >> 8);
-            SendMessage(new FireMessage() { FireCommand = FireCommand.Fire, Arg1 = arg1, Arg2 = arg2 });
+            SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Fire, Arg1 = arg1, Arg2 = arg2 });
         }
     }
 }

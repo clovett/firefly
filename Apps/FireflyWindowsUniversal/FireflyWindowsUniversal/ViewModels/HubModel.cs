@@ -1,4 +1,5 @@
 ﻿using BleLights.SharedControls;
+using FireflyWindows.Networking;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -61,7 +62,7 @@ namespace FireflyWindows.ViewModels
 
         public FireflyHub Hub {  get { return this.hub; } }
 
-        private void OnMessageReceived(object sender, FireMessage e)
+        private void OnMessageReceived(object sender, FireflyMessage e)
         {
             if (this.hub == (FireflyHub)sender)
             {
