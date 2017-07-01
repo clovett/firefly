@@ -125,7 +125,7 @@ void handle_command(FireMessage& msg)
         msg.command = Ack;        
         tubes.arm(msg.arg1 == 1 ? true : false);
         if (msg.arg1 == 1){
-          led.ramp(255,0,0,1000);
+          led.ramp(31,200,1,1,1000);
         } else {
           led.off();
         }
@@ -180,10 +180,10 @@ void run(){
   TcpMessageStream tcp_stream(&queue, local_ip);
   tcp_stream.start_listening(FireflyTcpPort);
 
+  ESP_LOGI(TAG, "bootstrap complete.");
+
   led.init();
   led.off();
-
-  ESP_LOGI(TAG, "bootstrap complete.");
 
   char* buffer = new char[100];
 

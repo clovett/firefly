@@ -13,13 +13,18 @@ static const char *TAG = "led";
 #define GPIO_SCLK 3//1 // TX
 
 #define NUM_LEDS 12
-#define SPI_BUFLEN 4*(NUM_LEDS+1) //+1 for the leading empty header
+#define SPI_BUFLEN 4*(NUM_LEDS+2) //+1 for the leading empty header
+
+uint8_t min(uint8_t a, uint8_t b){
+    if (a < b) return a;
+    return b;
+}
 
 spi_device_handle_t handle;
 
-// This code is for controlling a strip of LED's using WS2812 chip from http://www.world-semi.com/
-// See datasheet:
-// https://cdn.sparkfun.com/datasheets/Components/LED/WS2812.pdf
+// This code is for controlling a strip of LED's using APA102C controller
+// from www.shiji-led.com.  See datasheet:
+// https://cdn-shop.adafruit.com/product-files/2343/APA102C.pdf
 
 void led_task(void *pvParameter)
 {
@@ -29,9 +34,9 @@ void led_task(void *pvParameter)
     }
 }
 
-
 void LedController::init()
 {
+    this->brightness = 0;
     this->red = 0;
     this->green = 0;
     this->blue = 0;
@@ -86,36 +91,41 @@ void LedController::off()
     this->cmd = AllOff;
 }
 
-void LedController::color(uint8_t red, uint8_t green,uint8_t blue)
+void LedController::color(uint8_t brightness, uint8_t red, uint8_t green,uint8_t blue)
 {
+    this->brightness = min(31,brightness);
     this->red = red;
     this->green = green;
     this->blue = blue;
-    this->cmd = SetColor;
     this->count = 0;
     this->milliseconds = 0;
+    this->cmd = SetColor;
 }
 
-void LedController::ramp(uint8_t red, uint8_t green,uint8_t blue, int milliseconds)
+void LedController::ramp(uint8_t brightness, uint8_t red, uint8_t green,uint8_t blue, int milliseconds)
 {
+    this->start_brightness = min(31,brightness);
     this->start_red = this->red;
     this->start_green = this->green;
     this->start_blue= this->blue;
+    
+    this->target_brightness = brightness;
     this->target_red = red;
     this->target_green = green;
     this->target_blue = blue;
-    this->cmd = RampColor;
     this->count = 0;
     this->milliseconds = milliseconds;
+    this->cmd = RampColor;
 }
-void LedController::blink(uint8_t red, uint8_t green,uint8_t blue, int milliseconds)
+void LedController::blink(uint8_t brightness, uint8_t red, uint8_t green,uint8_t blue, int milliseconds)
 {
+    this->brightness = min(31,brightness);
     this->red = red;
     this->green = green;
     this->blue = blue;
-    this->cmd = Blink;
     this->count = 0;
     this->milliseconds = milliseconds;
+    this->cmd = Blink;
 }
 
 void LedController::run()
@@ -147,6 +157,7 @@ void LedController::run()
 
 void LedController::allOff()
 {
+    this->brightness = 0;
     this->red = 0;
     this->green = 0;
     this->blue = 0;
@@ -164,6 +175,7 @@ void LedController::ramp()
     if (milliseconds == 0) {
         percent = 1;
     }
+    this->brightness = interpolate_color(this->start_brightness, this->target_brightness, percent);
     this->red = interpolate_color(this->start_red, this->target_red, percent);
     this->green = interpolate_color(this->start_green, this->start_green, percent);
     this->blue = interpolate_color(this->start_blue, this->start_blue, percent);
@@ -179,27 +191,44 @@ void LedController::ramp()
 
 void LedController::blink()
 {
-    off();
+    uint8_t a = this->brightness;
+    uint8_t r = this->red;
+    uint8_t g = this->green;
+    uint8_t b = this->blue;
+
+    this->brightness = 0;
+    this->red = 0;
+    this->green = 0;
+    this->blue = 0;
+
+    allOff();
     vTaskDelay(milliseconds / portTICK_PERIOD_MS);
+    
+    this->brightness = a;
+    this->red = r;
+    this->green = g;
+    this->blue = b;
+
     color();
     vTaskDelay(milliseconds / portTICK_PERIOD_MS);
 }
 
 void LedController::color()
 {
-    char sendbuf[SPI_BUFLEN] = {0};
+    uint8_t sendbuf[SPI_BUFLEN] = {0};
     spi_transaction_t t;
-    memset(&t, 0, sizeof(t));
+    memset(&t, 0, sizeof(t)); 
+    memset(&sendbuf[SPI_BUFLEN-5], 0xff, 4); // end frame
     esp_err_t ret;
+    const uint8_t start_bits = 0xE0;
     
-
     for(int i = 0; i < NUM_LEDS; i++)
     {
         int index = (i+1)*4;
-        sendbuf[index] = 0xFF;
-        sendbuf[index + 1] = red;
+        sendbuf[index] = start_bits + min(31,brightness);
+        sendbuf[index + 1] = blue;
         sendbuf[index + 2] = green;
-        sendbuf[index + 3] = blue;
+        sendbuf[index + 3] = red;
     }
     t.length = SPI_BUFLEN * 8; //BUFLEN bytes
     t.tx_buffer = sendbuf;
