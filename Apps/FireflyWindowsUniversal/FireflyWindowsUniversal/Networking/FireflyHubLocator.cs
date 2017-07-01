@@ -23,6 +23,7 @@ namespace FireflyWindows
         const int BroadcastDelay = 5000; // 5 seconds
 
         public event EventHandler<FireflyHub> HubAdded;
+        public event EventHandler<FireflyHub> HubConnected;
 
         public void StartFindingHubs()
         {
@@ -184,6 +185,11 @@ namespace FireflyWindows
                         if (HubAdded != null)
                         {
                             HubAdded(this, hub);
+                        }
+                    } else {
+                        if (HubConnected != null)
+                        {
+                            HubConnected(this, hub);
                         }
                     }
                 }

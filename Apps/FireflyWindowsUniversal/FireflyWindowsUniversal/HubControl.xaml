@@ -7,16 +7,19 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Padding="0"
-    Width="300" Height="140">
+    Width="300" Height="150">
+    <UserControl.Resources>
+        <local:ConnectedBackgroundConverter x:Key="ConnectedBackgroundConverter"/>
+    </UserControl.Resources>
 
-    <Grid >
+    <Grid Background="{Binding Path=Connected, Converter={StaticResource ConnectedBackgroundConverter}, ConverterParameter=#80805050}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" Grid.Row="0" Foreground="Yellow"/>
-        <GridView x:Name="TubeGrid" ItemsSource="{Binding Tubes}" Margin="5" Padding="0" Grid.Row="1" ScrollViewer.HorizontalScrollMode="Disabled" 
+        <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" Grid.Row="0" Foreground="Gray" FontSize="12"/>
+        <GridView x:Name="TubeGrid" ItemsSource="{Binding Tubes}" Margin="10,5" Padding="0" Grid.Row="1" ScrollViewer.HorizontalScrollMode="Disabled" 
               ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Hidden"
               ScrollViewer.HorizontalScrollBarVisibility="Hidden">
             <GridView.ItemTemplate>
@@ -26,10 +29,10 @@
             </GridView.ItemTemplate>
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <ItemsWrapGrid Orientation="Horizontal"/>
+                    <ItemsWrapGrid Orientation="Horizontal" />
                 </ItemsPanelTemplate>
             </GridView.ItemsPanel>
         </GridView>
-        <TextBlock Foreground="Salmon" Text="{Binding ErrorMessage}" Grid.Row="2"/>
+        <TextBlock Foreground="Salmon" Text="{Binding ErrorMessage}" Grid.Row="2" FontSize="12"/>
     </Grid>
 </UserControl>

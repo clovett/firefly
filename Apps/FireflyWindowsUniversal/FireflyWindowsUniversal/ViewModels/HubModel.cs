@@ -3,6 +3,7 @@ using FireflyWindows.Networking;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,50 +11,89 @@ using Windows.UI.Xaml;
 
 namespace FireflyWindows.ViewModels
 {
-    class HubModel : DependencyObject
+    class HubModel : INotifyPropertyChanged
     {
         FireflyHub hub;
+        bool connected;
+        string name;
+        int count;
+        string error;
         ObservableCollection<TubeModel> tubes = new ObservableCollection<TubeModel>();
 
         public HubModel(FireflyHub e)
         {
             this.hub = e;
+            this.Connected = this.hub.Connected;
             e.MessageReceived += OnMessageReceived;
             e.TcpError += OnTcpError;
+            e.ConnectionChanged += OnConnectionChanged;
+        }
+
+        private void OnConnectionChanged(object sender, EventArgs e)
+        {
+            UiDispatcher.RunOnUIThread(() =>
+            {
+                this.Connected = this.hub.Connected;
+            });
         }
 
         private void OnTcpError(object sender, Exception e)
         {
             UiDispatcher.RunOnUIThread(() =>
             {
-                ErrorMessage = e.Message;
+                this.ErrorMessage = e.Message;
             });
+        }
+
+        public bool Connected
+        {
+            get { return this.connected; }
+            set {
+                if (this.connected != value)
+                {
+                    this.connected = value;
+                    OnPropertyChanged("Connected");
+                }
+            }
         }
 
 
         public string Name
         {
-            get { return (string)GetValue(NameProperty); }
-            set { SetValue(NameProperty, value); }
+            get { return this.name; }
+            set
+            {
+                if (this.name != value)
+                {
+                    this.name = value;
+                    OnPropertyChanged("Name");
+                }
+            }
         }
-
-        // Using a DependencyProperty as the backing store for Name.  This enables animation, styling, binding, etc...
-        public static readonly DependencyProperty NameProperty =
-            DependencyProperty.Register("Name", typeof(string), typeof(HubModel), new PropertyMetadata(null));
-
 
 
         public string ErrorMessage
         {
-            get { return (string)GetValue(ErrorMessageProperty); }
-            set { SetValue(ErrorMessageProperty, value); }
+            get { return this.error; }
+            set
+            {
+                if (this.error != value)
+                {
+                    this.error = value;
+                    OnPropertyChanged("ErrorMessage");
+                }
+            }
         }
 
-        // Using a DependencyProperty as the backing store for ErrorMessage.  This enables animation, styling, binding, etc...
-        public static readonly DependencyProperty ErrorMessageProperty =
-            DependencyProperty.Register("ErrorMessage", typeof(string), typeof(HubModel), new PropertyMetadata(null));
+        public event PropertyChangedEventHandler PropertyChanged;
 
-
+        private void OnPropertyChanged(string name)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(name));
+            }
+        }
 
         public ObservableCollection<TubeModel> Tubes
         {

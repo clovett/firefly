@@ -108,6 +108,7 @@
     <Compile Include="Networking\TcpMessageStream.cs" />
     <Compile Include="Networking\UdpMessageStream.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities\ConnectedBackgroundConverter.cs" />
     <Compile Include="Utilities\DelayedAction.cs" />
     <Compile Include="Utilities\UiDispatcher.cs" />
     <Compile Include="ViewModels\HubModel.cs" />

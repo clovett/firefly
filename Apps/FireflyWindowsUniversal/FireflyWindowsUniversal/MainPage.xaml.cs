@@ -34,6 +34,7 @@ namespace FireflyWindows
         public MainPage()
         {
             locator.HubAdded += OnFoundHub;
+            locator.HubConnected += OnHubConnected;
             this.InitializeComponent();
             HubGrid.ItemsSource = hubList;
             Windows.Networking.Connectivity.NetworkInformation.NetworkStatusChanged += OnNetworkStatusChange;
@@ -65,6 +66,22 @@ namespace FireflyWindows
             catch (Exception ex)
             {
                 AddMessage("Connect failed: " + ex.Message);
+            }
+        }
+
+        private async void OnHubConnected(object sender, FireflyHub e)
+        {
+            // hearing from this hub again, let's make sure it is connected.
+            if (!e.Connected)
+            {
+                try
+                {
+                    await e.ConnectAsync();
+                }
+                catch (Exception ex)
+                {
+                    AddMessage("Connect failed: " + ex.Message);
+                }
             }
         }
 

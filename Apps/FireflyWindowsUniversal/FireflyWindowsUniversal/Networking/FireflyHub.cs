@@ -22,34 +22,68 @@ namespace FireflyWindows
         private bool running;
         bool closing;
         bool armed;
+        bool connected;
+        bool connecting;
         private Queue<FireflyMessage> queue = new Queue<FireflyMessage>();
         ManualResetEvent available = new ManualResetEvent(false);
         ManualResetEvent queueEmpty = new ManualResetEvent(false);
         Mutex queueLock = new Mutex();
 
         public event EventHandler<Exception> TcpError;
+        public event EventHandler ConnectionChanged;
 
         internal async Task ConnectAsync()
         {
-            socket = new TcpMessageStream(FireflyMessage.MessageLength);
-            socket.Error += OnSocketError;
+            if (!connecting)
+            {
+                connecting = true;
+                try
+                {
+                    socket = new TcpMessageStream(FireflyMessage.MessageLength);
+                    socket.Error += OnSocketError;
 
-            await socket.ConnectAsync(
-                new IPEndPoint(IPAddress.Parse(LocalHost.CanonicalName), 0),
-                new IPEndPoint(IPAddress.Parse(RemoteAddress), int.Parse(RemotePort)));
-            running = true;
-            var nowait = Task.Run(new Action(ProcessMessages));
-            nowait = Task.Run(new Action(Heartbeat));
+                    await socket.ConnectAsync(
+                        new IPEndPoint(IPAddress.Parse(LocalHost.CanonicalName), 0),
+                        new IPEndPoint(IPAddress.Parse(RemoteAddress), int.Parse(RemotePort)));
+                    running = true;
+                    var nowait = Task.Run(new Action(ProcessMessages));
+                    nowait = Task.Run(new Action(Heartbeat));
 
-            // get tube count
-            GetInfo();
+                    Debug.WriteLine("Connected !!");
+                    this.connected = true;
+                    OnConnectionChanged();
+
+                    // get tube count
+                    GetInfo();
+                }
+                finally
+                {
+                    connecting = false;
+                }
+            }
         }
 
         private void OnSocketError(object sender, Exception e)
         {
+            if ((uint)e.HResult == 0x80072746 || (e.InnerException != null && (uint)e.InnerException.HResult == 0x80072746))
+            {
+                // An existing connection was forcibly closed by the remote host
+                this.connected = false;
+                this.Close();
+                OnConnectionChanged();
+            }
+
             if (TcpError != null)
             {
                 TcpError(this, e);
+            }
+        }
+
+        private void OnConnectionChanged()
+        {
+            if (ConnectionChanged != null)
+            {
+                ConnectionChanged(this, EventArgs.Empty);
             }
         }
 
@@ -68,6 +102,7 @@ namespace FireflyWindows
         /// Get or set the number of tubes
         /// </summary>
         public int Tubes { get; set; }
+
         public DateTime LastHeartBeat { get; private set; }
 
         public event EventHandler<FireflyMessage> MessageReceived;
@@ -86,6 +121,7 @@ namespace FireflyWindows
             {
                 socket.Dispose();
             }
+            this.connected = false;
         }
 
         public void SendMessage(FireflyMessage f)
@@ -229,6 +265,10 @@ namespace FireflyWindows
         }
 
         public bool Armed {  get { return this.armed; } }
+
+        public bool Connected {
+            get { return this.connected; }
+        }
 
         internal void Arm(bool arm)
         {
