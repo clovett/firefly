@@ -19,6 +19,7 @@ CONDITIONS OF ANY KIND, either express or implied.
 #include "../components/networking/Utils.hpp"
 #include "../components/led/led.hpp"
 #include "../components/gpio/tubes.hpp"
+#include "FireflyMessage.hpp"
 #include <string.h>
 
 static const char *TAG = "main";
@@ -26,81 +27,17 @@ static const char *FIND_HUB_BROADCAST = "FIREFLY-FIND-HUB";
 static const char *FIND_HUB_RESPONSE = "FIREFLY-HUB";
 const int FireflyBroadcastPort = 13777; // the magic firefly ports
 const int FireflyTcpPort = 13787; // the magic firefly ports
-const uint8_t HeaderByte = 0xfe;
-const int FireflyCommandLength = 5;
 const int MaxTubes = 10;
+const bool EnableLed = false;
 
 Wifi wifi;
 LedController led;
 Tubes tubes;
 
-static uint8_t Crc(char* buffer, int offset, int len)
-{
-    uint8_t crc = 0;
-    for (int i = offset; i < len; i++)
-    {
-        uint8_t c = buffer[i];
-        crc = (uint8_t)((crc >> 1) ^ c);
-    }
-    return crc;
-}
-
-enum FireflyCommand
-{
-    None = 0,
-    Info = 'I',
-    Fire = 'F',
-    Heartbeat = 'H',
-    Arm = 'X',
-    // responses
-    Ready = 'R',
-    Ack = 'A',
-    Nack = 'N',
-    Timeout = 'T',
-    Error = 'E'
-};
-
-class  FireMessage
-{
-public:
-    uint8_t header_byte = 0;
-    FireflyCommand command= None;
-    uint8_t arg1= 0;
-    uint8_t arg2= 0;
-    uint8_t crc= 0;
-    bool crc_valid = false;
-
-    FireMessage(Message* msg) {      
-      if (msg->len == FireflyCommandLength) {
-          header_byte = (uint8_t)msg->payload[0];
-          command = (FireflyCommand)msg->payload[1];
-          arg1 = (uint8_t)msg->payload[2];
-          arg2 = (uint8_t)msg->payload[3];
-          crc = (uint8_t)msg->payload[4];
-          crc_valid = (this->crc == Crc(msg->payload, 0, 4));
-      }
-    }
-
-    char* pack() {
-      buffer[0] = HeaderByte;
-      buffer[1] = (char)command;
-      buffer[2] = (char)arg1;
-      buffer[3] = (char)arg2;
-      buffer[4] = Crc(buffer,0,4);
-      return buffer;
-    }
-
-    int tube() {
-      return (arg1 + (arg2 << 8) );
-    }
-    private:
-    char buffer[5];
-};
-
 void handle_command(FireMessage& msg)
 {
   int tube = 0;
-  if (msg.header_byte == HeaderByte && msg.crc_valid)
+  if (msg.header == MagicHeader && msg.crc_valid)
   {
     switch (msg.command)
     {
@@ -124,10 +61,12 @@ void handle_command(FireMessage& msg)
         ESP_LOGI(TAG, "arming tubes %d", msg.arg1);
         msg.command = Ack;        
         tubes.arm(msg.arg1 == 1 ? true : false);
-        if (msg.arg1 == 1){
-          led.ramp(31,200,1,1,1000);
-        } else {
-          led.off();
+        if (EnableLed) {
+          if (msg.arg1 == 1){
+            led.ramp(31,200,1,1,1000);
+          } else {
+            led.off();
+          }
         }
         break;
         
@@ -157,6 +96,8 @@ void handle_command(FireMessage& msg)
       break;  
       
     }
+  } else {
+    ESP_LOGI(TAG, "ignoring invalid mesg, header=%d, checksum %d, computed=%d",  msg.header, msg.crc, msg.computed);  
   }
 
 }
@@ -182,8 +123,10 @@ void run(){
 
   ESP_LOGI(TAG, "bootstrap complete.");
 
-  led.init();
-  led.off();
+  if (EnableLed) {
+    led.init();
+    led.off();
+  }
 
   char* buffer = new char[100];
 
@@ -193,9 +136,10 @@ void run(){
     {
       if (msg->is_tcp()){
           ESP_LOGI(TAG, "received tcp message %d, type=%d",  msg->len, (int)msg->payload[0]);
-          FireMessage fm(msg);
+          FireMessage fm(msg);          
           handle_command(fm);
-          Message response(msg, fm.pack(), FireflyCommandLength);
+          std::string packed = fm.format();
+          Message response(msg, packed.c_str(), packed.size());
           tcp_stream.send_reply(&response);
       }
       else if (strncmp(msg->payload, FIND_HUB_BROADCAST, msg->len) == 0)
@@ -203,8 +147,8 @@ void run(){
         const char* addr = addr_to_string(&msg->remote_addr);
         ESP_LOGI(TAG, "hey, (%s:%d) wants to find us!", addr, msg->remote_addr.sin_port);
 
-        addr = local_ip.c_str();
-        int len = sprintf(buffer, "%s,%s,%d", FIND_HUB_RESPONSE, addr, FireflyTcpPort);
+        addr = local_ip.c_str();        
+        int len = sprintf(buffer, "%s,%s,%d,%s", FIND_HUB_RESPONSE, addr, FireflyTcpPort,  tcp_stream.get_remote_host().c_str());
 
         Message response(msg, buffer, len);
         udp_stream.send_to(&response);

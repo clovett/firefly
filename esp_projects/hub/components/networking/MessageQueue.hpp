@@ -7,11 +7,11 @@
 
 class Message {
 public:
-    Message(struct sockaddr_in *localaddr, struct sockaddr_in *remoteaddr, char* payload, int len);
+    Message(struct sockaddr_in *localaddr, struct sockaddr_in *remoteaddr, const char* payload, int len);
 
-    Message(Message* replyTo, char* payload, int len);
+    Message(Message* replyTo, const char* payload, int len);
 
-    Message(int tcp_socket, char* payload, int len);
+    Message(int tcp_socket, const char* payload, int len);
 
     ~Message();
 

@@ -6,7 +6,7 @@ static const char *TAG = "queue";
 #define MAX_MUTEX_WAIT_MS       1000
 #define MAX_MUTEX_WAIT_TICKS    (MAX_MUTEX_WAIT_MS / portTICK_PERIOD_MS)
 
-Message::Message(struct sockaddr_in *localaddr, struct sockaddr_in *remoteaddr, char* payload, int len)
+Message::Message(struct sockaddr_in *localaddr, struct sockaddr_in *remoteaddr, const char* payload, int len)
 {    
     this->tcp_socket = 0;
     memcpy(&this->local_addr, localaddr, sizeof(struct sockaddr_in));
@@ -22,7 +22,7 @@ Message::Message(struct sockaddr_in *localaddr, struct sockaddr_in *remoteaddr, 
     }
 }
 
-Message::Message(Message* replyTo, char* payload, int len)
+Message::Message(Message* replyTo, const char* payload, int len)
 {
     this->tcp_socket = replyTo->tcp_socket;
     memcpy(&this->local_addr, &replyTo->local_addr, sizeof(struct sockaddr_in));
@@ -39,7 +39,7 @@ Message::Message(Message* replyTo, char* payload, int len)
 }
 
 
-Message::Message(int tcp_socket, char* payload, int len)
+Message::Message(int tcp_socket, const char* payload, int len)
 {
     this->tcp_socket = tcp_socket;
     this->payload = (char*)malloc(len + 1);

@@ -3,6 +3,8 @@
 #include "MessageQueue.hpp"
 #include <string>
 
+// This class implements a simple message based TCP protocol where the
+// end of each message is denoted by a NULL terminating character.
 class TcpMessageStream
 {
 public:
@@ -21,12 +23,18 @@ public:
         queue->enqueue(msg);
     }
 
+    std::string get_remote_host(){
+        return remote_ip;
+    }
+
     // internal use only
     void server();
 private: 
     std::string local_ip;
     int port;  
-    int tcp_socket;
+    int tcp_socket;    
+    bool connected;
+    std::string remote_ip;
     MessageQueue* queue; 
 };
 

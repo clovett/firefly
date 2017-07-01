@@ -13,6 +13,7 @@ namespace FireflyWindows
 {
     class FireflyHub
     {
+        const int MaximumMessageLength = 1000;
         public HostName LocalHost { get; internal set; }
         public string RemotePort { get; internal set; }
         public string RemoteAddress { get; internal set; }
@@ -24,12 +25,13 @@ namespace FireflyWindows
         bool armed;
         bool connected;
         bool connecting;
+        DateTime connectTime;
         private Queue<FireflyMessage> queue = new Queue<FireflyMessage>();
         ManualResetEvent available = new ManualResetEvent(false);
         ManualResetEvent queueEmpty = new ManualResetEvent(false);
         Mutex queueLock = new Mutex();
 
-        public event EventHandler<Exception> TcpError;
+        public event EventHandler<string> Error;
         public event EventHandler ConnectionChanged;
 
         internal async Task ConnectAsync()
@@ -37,9 +39,10 @@ namespace FireflyWindows
             if (!connecting)
             {
                 connecting = true;
+                this.connectTime = DateTime.Now;
                 try
                 {
-                    socket = new TcpMessageStream(FireflyMessage.MessageLength);
+                    socket = new TcpMessageStream(MaximumMessageLength);
                     socket.Error += OnSocketError;
 
                     await socket.ConnectAsync(
@@ -51,6 +54,7 @@ namespace FireflyWindows
 
                     Debug.WriteLine("Connected !!");
                     this.connected = true;
+                    this.connectTime = DateTime.Now;
                     OnConnectionChanged();
 
                     // get tube count
@@ -72,10 +76,14 @@ namespace FireflyWindows
                 this.Close();
                 OnConnectionChanged();
             }
+            OnError(e.Message);
+        }
 
-            if (TcpError != null)
+        private void OnError(string msg)
+        {
+            if (Error != null)
             {
-                TcpError(this, e);
+                Error(this, msg);
             }
         }
 
@@ -84,6 +92,17 @@ namespace FireflyWindows
             if (ConnectionChanged != null)
             {
                 ConnectionChanged(this, EventArgs.Empty);
+            }
+        }
+
+        internal async Task Reconnect()
+        {
+            TimeSpan timeSinceConnection = DateTime.Now - this.connectTime;
+            if (timeSinceConnection > TimeSpan.FromSeconds(5))
+            {
+                // the hub may have rebooted, so we need to reconnect...
+                Close();
+                await ConnectAsync();
             }
         }
 
@@ -111,17 +130,22 @@ namespace FireflyWindows
         {
             closing = true;
             Arm(false);
-            if (!queueEmpty.WaitOne(5000))
-            {
-                Debug.WriteLine("{0}: Timeout 5 seconds waiting for queue to drain", this.RemoteAddress);
-            }
-            running = false;
             available.Set();
             if (socket != null)
             {
                 socket.Dispose();
             }
             this.connected = false;
+        }
+
+        // stop sending and flush the queue.
+        internal void Stop()
+        {
+            running = false;
+            if (!queueEmpty.WaitOne(5000))
+            {
+                Debug.WriteLine("{0}: Timeout 5 seconds waiting for queue to drain", this.RemoteAddress);
+            }
         }
 
         public void SendMessage(FireflyMessage f)
@@ -165,7 +189,7 @@ namespace FireflyWindows
                             try
                             {
                                 Debug.WriteLine("{0}: Sending message: {1}", this.RemoteAddress, msg.FireCommand);
-                                byte[] result = socket.SendReceive(msg.ToArray());
+                                byte[] result = socket.SendReceive(msg.Format());
                                 // tcp is synchronous request/response
                                 response = FireflyMessage.Parse(result);
                             }
@@ -227,7 +251,16 @@ namespace FireflyWindows
 
         private void HandleFireResponse(FireflyMessage response)
         {
-            // todo
+            switch (response.FireCommand)
+            {
+                case FireflyCommand.Ack:
+                    // great!
+                    break;
+                default:
+                    // hmm, failed to fire?
+                    OnError("Error (" + response.FireCommand + ") firing tube " + response.Arg1);
+                    break;
+            }
         }
 
         private void HandleInfoResponse(FireflyMessage response)
@@ -235,15 +268,10 @@ namespace FireflyWindows
             switch (response.FireCommand)
             {
                 case FireflyCommand.Ack:
-                    Tubes = (response.Arg1 + (256 * response.Arg2));
-                    break;
-                case FireflyCommand.Nack:
-                    break;
-                case FireflyCommand.Timeout:
-                    break;
-                case FireflyCommand.Error:
+                    Tubes = response.Arg1;
                     break;
                 default:
+                    OnError("Error (" + response.FireCommand + ") getting info");
                     break;
             }
         }
@@ -278,9 +306,7 @@ namespace FireflyWindows
 
         internal void FireTube(int i)
         {
-            byte arg1 = (byte)i;
-            byte arg2 = (byte)(i >> 8);
-            SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Fire, Arg1 = arg1, Arg2 = arg2 });
+            SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Fire, Arg1 = i});
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -11,6 +12,8 @@ using Windows.Storage.Streams;
 
 namespace FireflyWindows.Networking
 {
+    // This class implements a simple message based TCP protocol where the
+    // end of each message is denoted by a NULL terminating character.
     class TcpMessageStream : IDisposable
     {
         StreamSocket socket;
@@ -44,29 +47,27 @@ namespace FireflyWindows.Networking
         {
             try
             {
+                MemoryStream buffer = new MemoryStream();
+
                 StreamSocket s = this.socket;
-                if (s != null)
+                if (s != null && this.writer != null)
                 {
-                    int len = message.Length;
-                    byte[] length = new byte[2];
-                    length[0] = (byte)len;
-                    length[1] = (byte)(len >> 8);
-                    this.writer.Write(length, 0, 2);
-                    this.writer.Write(message, 0, len);
+                    // send message
+                    this.writer.Write(message, 0, message.Length);
                     this.writer.Flush();
 
-                    length[0] = this.reader.ReadByte();
-                    length[1] = this.reader.ReadByte();
-                    len = length[0] + (length[1] >> 8);
-                    if (len <= messageMaxLength)
-                    {
-                        byte[] result = this.reader.ReadBytes(len);
-                        return result;
+                    // read response                    
+                    byte ch = this.reader.ReadByte();
+                    while (ch != 0) { 
+                        buffer.WriteByte(ch);
+                        ch = this.reader.ReadByte();
+                        if (buffer.Length > this.messageMaxLength)
+                        {
+                            Debug.WriteLine("Purging message that exceeded maximum length");
+                            buffer = new MemoryStream();
+                        }
                     }
-                    else
-                    {
-                        // now what, stream is out of sync, perhaps we should skip to next magic marker...
-                    }
+                    return buffer.ToArray();
                 }
 
             }
@@ -93,6 +94,8 @@ namespace FireflyWindows.Networking
             {
                 socket.Dispose();
                 socket = null;
+                this.writer = null;
+                this.reader = null;
             }
         }
     }

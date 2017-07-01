@@ -16,7 +16,6 @@ namespace FireflyWindows.ViewModels
         FireflyHub hub;
         bool connected;
         string name;
-        int count;
         string error;
         ObservableCollection<TubeModel> tubes = new ObservableCollection<TubeModel>();
 
@@ -25,7 +24,7 @@ namespace FireflyWindows.ViewModels
             this.hub = e;
             this.Connected = this.hub.Connected;
             e.MessageReceived += OnMessageReceived;
-            e.TcpError += OnTcpError;
+            e.Error += OnHubError;
             e.ConnectionChanged += OnConnectionChanged;
         }
 
@@ -37,11 +36,11 @@ namespace FireflyWindows.ViewModels
             });
         }
 
-        private void OnTcpError(object sender, Exception e)
+        private void OnHubError(object sender, string e)
         {
             UiDispatcher.RunOnUIThread(() =>
             {
-                this.ErrorMessage = e.Message;
+                this.ErrorMessage = e;
             });
         }
 

@@ -24,6 +24,7 @@ namespace FireflyWindows
 
         public event EventHandler<FireflyHub> HubAdded;
         public event EventHandler<FireflyHub> HubConnected;
+        public event EventHandler<FireflyHub> HubDisconnected;
 
         public void StartFindingHubs()
         {
@@ -115,6 +116,7 @@ namespace FireflyWindows
             {
                 foreach (var item in hubs.Values)
                 {
+                    item.Stop();
                     item.Close();
                 }
                 hubs.Clear();
@@ -164,11 +166,12 @@ namespace FireflyWindows
 
             count++;
             string[] parts = msg.Split(',');
-            if (parts.Length == 3)
+            if (parts.Length == 4)
             {
                 string prefix = parts[0];
                 string ipAddr = parts[1];
                 string port = parts[2];
+                string connected = parts[3];
                 if (prefix == UdpResponseMessage)
                 {
                     FireflyHub hub = null;
@@ -187,9 +190,21 @@ namespace FireflyWindows
                             HubAdded(this, hub);
                         }
                     } else {
-                        if (HubConnected != null)
+                        if (connected == hub.LocalHost.CanonicalName)
                         {
-                            HubConnected(this, hub);
+                            if (HubConnected != null)
+                            {
+                                HubConnected(this, hub);
+                            }
+                        }
+                        else
+                        {
+                            // the hub no longer thinks they are connected to us,
+                            // it may have done a reboot, so we need to reconnect.
+                            if (HubDisconnected != null)
+                            {
+                                HubDisconnected(this, hub);
+                            }
                         }
                     }
                 }

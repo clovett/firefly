@@ -20,7 +20,6 @@ namespace FireflyWindows.Networking
         DatagramSocket socket;
         EndpointPair pair;
         string broadcastMessage;
-        bool connected;
 
         /// <summary>
         /// Connect a datagram socket and monitor messages that contain the given broadcastMessage 
@@ -37,7 +36,6 @@ namespace FireflyWindows.Networking
             {
                 // then this is a directed UDP socket that should talk to only one end point.
                 await socket.ConnectAsync(pair);
-                connected = true;
             }
         }
 

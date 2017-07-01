@@ -35,6 +35,7 @@ namespace FireflyWindows
         {
             locator.HubAdded += OnFoundHub;
             locator.HubConnected += OnHubConnected;
+            locator.HubDisconnected += OnHubDisconnected;
             this.InitializeComponent();
             HubGrid.ItemsSource = hubList;
             Windows.Networking.Connectivity.NetworkInformation.NetworkStatusChanged += OnNetworkStatusChange;
@@ -84,6 +85,19 @@ namespace FireflyWindows
                 }
             }
         }
+
+        private async void OnHubDisconnected(object sender, FireflyHub e)
+        {
+            try
+            {
+                await e.Reconnect();
+            }
+            catch (Exception ex)
+            {
+                AddMessage("Reconnect failed: " + ex.Message);
+            }
+        }
+
 
         void AddMessage(string msg)
         {
