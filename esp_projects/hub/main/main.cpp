@@ -28,11 +28,19 @@ static const char *FIND_HUB_RESPONSE = "FIREFLY-HUB";
 const int FireflyBroadcastPort = 13777; // the magic firefly ports
 const int FireflyTcpPort = 13787; // the magic firefly ports
 const int MaxTubes = 10;
-const bool EnableLed = false;
+static bool LedInitialized = false;
 
 Wifi wifi;
 LedController led;
 Tubes tubes;
+
+void initialize_leds(){
+  if (!LedInitialized){
+    LedInitialized = true;
+    led.init();
+    led.off();
+  }
+}
 
 void handle_command(FireMessage& msg)
 {
@@ -42,14 +50,14 @@ void handle_command(FireMessage& msg)
     switch (msg.command)
     {
     case Info:
-      // return number of tubes.
-      ESP_LOGI(TAG, "Info request");
-      msg.command = Ack;
-      msg.arg1 = MaxTubes;
-      msg.arg2 = 0;
-      // todo: we could also sense loaded tubes right?
-      // then perhaps return a bitmap of loaded vs empty tubes.
-      break;
+        // return number of tubes.
+        ESP_LOGI(TAG, "Info request");
+        msg.command = Ack;
+        msg.arg1 = MaxTubes;
+        msg.arg2 = 0;
+        // todo: we could also sense loaded tubes right?
+        // then perhaps return a bitmap of loaded vs empty tubes.
+        break;
     case Heartbeat:
         // heartbeat, echo back simple response.
         ESP_LOGI(TAG, "heartbeat ping");
@@ -61,13 +69,6 @@ void handle_command(FireMessage& msg)
         ESP_LOGI(TAG, "arming tubes %d", msg.arg1);
         msg.command = Ack;        
         tubes.arm(msg.arg1 == 1 ? true : false);
-        if (EnableLed) {
-          if (msg.arg1 == 1){
-            led.ramp(31,200,1,1,1000);
-          } else {
-            led.off();
-          }
-        }
         break;
         
     case Fire:
@@ -83,10 +84,24 @@ void handle_command(FireMessage& msg)
           msg.command = Nack;
         }
         break;
+    case Color:
+        initialize_leds();
+        led.color(msg.arg1, msg.arg2, msg.arg3, msg.arg4);  
+        msg.command = Ack;      
+        break;
+    case Ramp:
+        initialize_leds();
+        led.ramp(msg.arg1, msg.arg2, msg.arg3, msg.arg4,1000);
+        msg.command = Ack;
+        break;
+    case Blink:
+        initialize_leds();
+        led.blink(msg.arg1, msg.arg2, msg.arg3, msg.arg4,1000);
+        msg.command = Ack;
+        break;
         
       // not expecting anything else
     case None:
-    case Ready:
     case Ack:
     case Nack:
     case Timeout:
@@ -122,11 +137,6 @@ void run(){
   tcp_stream.start_listening(FireflyTcpPort);
 
   ESP_LOGI(TAG, "bootstrap complete.");
-
-  if (EnableLed) {
-    led.init();
-    led.off();
-  }
 
   char* buffer = new char[100];
 

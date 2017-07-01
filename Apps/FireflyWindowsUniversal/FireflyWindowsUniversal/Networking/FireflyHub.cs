@@ -129,6 +129,7 @@ namespace FireflyWindows
         public void Close()
         {
             closing = true;
+            running = false;
             Arm(false);
             available.Set();
             if (socket != null)
@@ -141,7 +142,7 @@ namespace FireflyWindows
         // stop sending and flush the queue.
         internal void Stop()
         {
-            running = false;
+            closing = false;
             if (!queueEmpty.WaitOne(5000))
             {
                 Debug.WriteLine("{0}: Timeout 5 seconds waiting for queue to drain", this.RemoteAddress);
@@ -184,28 +185,29 @@ namespace FireflyWindows
                     {
                         postedEmpty = false;
                         msg = queue.Dequeue();
-                        if (msg != null)
-                        {
-                            try
-                            {
-                                Debug.WriteLine("{0}: Sending message: {1}", this.RemoteAddress, msg.FireCommand);
-                                byte[] result = socket.SendReceive(msg.Format());
-                                // tcp is synchronous request/response
-                                response = FireflyMessage.Parse(result);
-                            }
-                            catch (Exception e)
-                            {
-                                response = new FireflyMessage()
-                                {
-                                    Error = e
-                                };
-                            }
-                        }
                     }
                     else if (!postedEmpty)
                     {
                         postedEmpty = true;
                         queueEmpty.Set();
+                    }
+                }
+                if (msg != null)
+                {
+                    try
+                    {
+                        string formatted = msg.Format();
+                        Debug.WriteLine("{0}: Sending message: {1}: {2}", this.RemoteAddress, msg.FireCommand, formatted);
+                        byte[] result = socket.SendReceive(Encoding.UTF8.GetBytes(formatted));
+                        // our tcp protocol is synchronous request/response
+                        response = FireflyMessage.Parse(result);
+                    }
+                    catch (Exception e)
+                    {
+                        response = new FireflyMessage()
+                        {
+                            Error = e
+                        };
                     }
                 }
 
@@ -308,5 +310,12 @@ namespace FireflyWindows
         {
             SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Fire, Arg1 = i});
         }
+
+        internal void SetColor(byte a, byte r, byte g, byte b)
+        {
+            a = (byte)(((((int)r + (int)g + (int)b) / 3) * 31) / 255);
+            SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Color, Arg1 = a, Arg2 = r, Arg3 = g, Arg4 = b });
+        }
+
     }
 }

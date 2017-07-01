@@ -87,7 +87,13 @@
     <Style x:Key="ArmAppBarButtonStyle" TargetType="AppBarButton">
         <Setter Property="AutomationProperties.AutomationId" Value="SkipBackAppBarButton"/>
         <Setter Property="AutomationProperties.Name" Value="Skip Back"/>
-        <Setter Property="Content" Value="&#xE284;"/>
+        <Setter Property="Content" Value="&#xE289;"/>
+    </Style>
+
+    <Style x:Key="LightsOnAppBarButtonStyle" TargetType="AppBarButton">
+        <Setter Property="AutomationProperties.AutomationId" Value="SkipBackAppBarButton"/>
+        <Setter Property="AutomationProperties.Name" Value="Skip Back"/>
+        <Setter Property="Content" Value="&#xE203;"/>
     </Style>
     
 </ResourceDictionary>

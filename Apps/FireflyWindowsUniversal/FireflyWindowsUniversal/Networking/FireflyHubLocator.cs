@@ -125,7 +125,7 @@ namespace FireflyWindows
 
         private async Task SendUdpPing(HostName hostName)
         {
-            Debug.WriteLine(DateTime.Now.ToString("T") + ": SendUdpPing");
+            //Debug.WriteLine(DateTime.Now.ToString("T") + ": SendUdpPing");
             string ipAddress = hostName.CanonicalName;
             UdpMessageStream socket;
             bool setup = false;

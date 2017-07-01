@@ -13,12 +13,14 @@ enum FireflyCommand
     Fire = 'F',
     Heartbeat = 'H',
     Arm = 'X',
+    Color = 'C',
+    Ramp = 'R',
+    Blink = 'B',
     // responses
-    Ready = 'R',
     Ack = 'A',
     Nack = 'N',
     Timeout = 'T',
-    Error = 'E'
+    Error = 'E',    
 };
 
 class  FireMessage
@@ -93,7 +95,7 @@ public:
     }
 
     int tube() {
-      return (arg1 + (arg2 << 8) );
+      return arg1;
     }
     
 private:

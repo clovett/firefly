@@ -13,8 +13,10 @@ namespace FireflyWindows.Networking
         Info = 'I',
         Fire = 'F',
         Heartbeat = 'H',
+        Color = 'C',
+        Ramp = 'R',
+        Blink = 'B',
         // responses
-        Ready = 'R',
         Ack = 'A',
         Nack = 'N',
         Timeout = 'T',
@@ -51,14 +53,14 @@ namespace FireflyWindows.Networking
                 if (parts.Length == 7)
                 {
                     msg = new FireflyMessage();
-                    msg.Header = int.Parse(parts[0]);
+                    int.TryParse(parts[0], out msg.Header);
                     string cmd = parts[1];
                     msg.FireCommand = (cmd.Length > 0) ? (FireflyCommand)cmd[0] : FireflyCommand.None;
-                    msg.Arg1 = int.Parse(parts[2]);
-                    msg.Arg2 = int.Parse(parts[3]);
-                    msg.Arg3 = int.Parse(parts[4]);
-                    msg.Arg4 = int.Parse(parts[5]);
-                    msg.Crc = uint.Parse(parts[6]);
+                    int.TryParse(parts[2], out msg.Arg1);
+                    int.TryParse(parts[3], out msg.Arg2);
+                    int.TryParse(parts[4], out msg.Arg3);
+                    int.TryParse(parts[5], out msg.Arg4);
+                    uint.TryParse(parts[6], out msg.Crc);
                     int pos = text.LastIndexOf(',');
                     msg.Computed = ComputeCrc(result, 0, pos);
 
@@ -72,7 +74,7 @@ namespace FireflyWindows.Networking
             return msg;
         }
         
-        public byte[] Format()
+        public string Format()
         {
             StringBuilder msg = new StringBuilder();
 
@@ -94,8 +96,7 @@ namespace FireflyWindows.Networking
 
             msg.Append(",");
             msg.Append(crc.ToString());
-            msg.Append((char)0); // include a null terminator in the message
-            return Encoding.UTF8.GetBytes(msg.ToString());
+            return msg.ToString();
         }
 
          private static uint ComputeCrc(byte[] buffer, int offset, int len)

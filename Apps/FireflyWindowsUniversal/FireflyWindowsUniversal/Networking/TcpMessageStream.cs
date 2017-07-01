@@ -54,6 +54,10 @@ namespace FireflyWindows.Networking
                 {
                     // send message
                     this.writer.Write(message, 0, message.Length);
+                    // send null terminator
+                    byte[] terminator = new byte[1];
+                    terminator[0] = 0;
+                    this.writer.Write(terminator, 0, 1);
                     this.writer.Flush();
 
                     // read response                    
