@@ -29,15 +29,15 @@
     
     <!-- Button -->
     <Style x:Key="TubeButton" TargetType="Button">
-        <Setter Property="Height" Value="50" />
-        <Setter Property="Width"  Value="50" />
+        <Setter Property="Height" Value="60" />
+        <Setter Property="Width"  Value="60" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Background"  CornerRadius="25" BorderThickness="2" BorderBrush="{TemplateBinding Foreground}" 
+                    <Border x:Name="Background"  CornerRadius="30" BorderThickness="2" BorderBrush="{TemplateBinding Foreground}" 
                                 Padding="0" Margin="0" Background="{TemplateBinding Background}" >
                         <Border x:Name="Border" 
-                                CornerRadius="25" BorderThickness="2" BorderBrush="{TemplateBinding Foreground}" >
+                                CornerRadius="30" BorderThickness="2" BorderBrush="{TemplateBinding Foreground}" >
                             <Border.Background>
                                 <SolidColorBrush Color="Transparent"/>
                             </Border.Background>

@@ -16,8 +16,8 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Image Grid.RowSpan="3" Source="Assets/fireworks.png" Opacity="0.5"/>
-
+        <Image x:Name="BackgroundImage" Grid.RowSpan="3" Source="Assets/fireworks.png" Opacity="0.5"/>
+        
         <GridView x:Name="HubGrid" >
             <GridView.ItemTemplate>
                 <DataTemplate>
@@ -26,7 +26,7 @@
             </GridView.ItemTemplate>
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <ItemsWrapGrid/>
+                    <ItemsWrapGrid Orientation="Horizontal"/>
                 </ItemsPanelTemplate>
             </GridView.ItemsPanel>
         </GridView>

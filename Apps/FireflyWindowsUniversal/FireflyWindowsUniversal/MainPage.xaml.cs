@@ -17,6 +17,7 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Documents;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
@@ -42,7 +43,48 @@ namespace FireflyWindows
             Windows.Networking.Connectivity.NetworkInformation.NetworkStatusChanged += OnNetworkStatusChange;
             CheckNetworkStatus();
             SetArmIcon();
+            this.SizeChanged += MainPage_SizeChanged;
+            this.BackgroundImage.Loaded += BackgroundImage_Loaded;
         }
+
+        private void BackgroundImage_Loaded(object sender, RoutedEventArgs e)
+        {
+            ResizeImage(pageSize);
+        }
+
+        private void MainPage_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            pageSize = e.NewSize;
+            ResizeImage(pageSize);
+        }
+
+        Size pageSize;
+
+        void ResizeImage(Size pageSize)
+        {
+            BitmapSource src = BackgroundImage.Source as BitmapSource;
+            if (src != null && src.PixelWidth != 0 && pageSize.Width > 0)
+            {
+                BackgroundImage.Width = src.PixelWidth;
+                BackgroundImage.Height = src.PixelHeight;
+
+                double wScale = pageSize.Width / BackgroundImage.Width;
+                double hScale = pageSize.Height / BackgroundImage.Height;
+                double max = Math.Max(wScale, hScale);
+
+                if (pageSize.Width > pageSize.Height)
+                {
+                    BackgroundImage.ClearValue(Image.RenderTransformProperty);
+                    BackgroundImage.RenderTransform = new ScaleTransform() { ScaleX = max, ScaleY = max };
+                }
+                else
+                {
+                    MatrixTransform mat = new MatrixTransform() {  Matrix = new Windows.UI.Xaml.Media.Matrix(max, 0, 0, max, )}
+                    BackgroundImage.RenderTransform = new RotateTransform() { Angle = 90, CenterX = src.PixelWidth / 2, CenterY = src.PixelHeight / 2 };
+                }
+            }
+        }
+
 
         private void OnNetworkStatusChange(object sender)
         {
@@ -51,7 +93,7 @@ namespace FireflyWindows
 
         void CheckNetworkStatus()
         {
-            
+
         }
 
         private async void OnFoundHub(object sender, FireflyHub e)
@@ -106,7 +148,7 @@ namespace FireflyWindows
         void AddMessage(string msg)
         {
             Debug.WriteLine(msg);
-            UiDispatcher.RunOnUIThread(() => 
+            UiDispatcher.RunOnUIThread(() =>
             {
                 Messages.Text = msg;
             });
@@ -162,7 +204,7 @@ namespace FireflyWindows
         }
 
         void SetArmIcon()
-        { 
+        {
             SymbolIcon icon = (SymbolIcon)ArmButton.Icon;
             icon.Symbol = armed ? Symbol.Favorite : Symbol.OutlineStar;
         }
@@ -174,7 +216,7 @@ namespace FireflyWindows
             {
                 colorPosition = 0;
             }
-            
+
             SetColor(c.A, c.R, c.G, c.B);
         }
 
@@ -183,7 +225,7 @@ namespace FireflyWindows
             lightsOn = (r > 0 || g > 0 || b > 0);
             foreach (var hub in this.hubList)
             {
-                hub.Hub.SetColor(a,r,g,b);
+                hub.Hub.SetColor(a, r, g, b);
             }
         }
 
