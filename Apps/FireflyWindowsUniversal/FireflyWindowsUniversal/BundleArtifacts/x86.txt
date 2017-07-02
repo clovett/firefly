@@ -1,0 +1,2 @@
+MainPackage=D:\git\firefly\Apps\FireflyWindowsUniversal\FireflyWindowsUniversal\bin\x86\Release\FireflyWindowsUniversal_1.1.2.0_x86.appx
+SymbolPackage=D:\git\firefly\Apps\FireflyWindowsUniversal\FireflyWindowsUniversal\AppPackages\FireflyWindowsUniversal_1.1.2.0_Test\FireflyWindowsUniversal_1.1.2.0_x86.appxsym

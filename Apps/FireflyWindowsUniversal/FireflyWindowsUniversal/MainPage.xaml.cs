@@ -10,6 +10,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI;
+using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -240,5 +241,22 @@ namespace FireflyWindows
         int colorPosition = 0;
         bool lightsOn = false;
 
+        private void OnFullscreen(object sender, RoutedEventArgs e)
+        {
+            AppBarButton button = (AppBarButton)sender;
+            var view = ApplicationView.GetForCurrentView();
+            if (view.IsFullScreen)
+            {
+                view.ExitFullScreenMode();
+                button.Icon = new SymbolIcon(Symbol.FullScreen);
+            }
+            else
+            {
+                if (view.TryEnterFullScreenMode())
+                {
+                    button.Icon = new SymbolIcon(Symbol.BackToWindow);
+                }
+            }
+        }
     }
 }

@@ -82,7 +82,7 @@
 
                         <Paragraph Margin="10">I hope you enjoy this app.  If you like it please let me know by giving a
                             <InlineUIContainer>
-                                <HyperlinkButton x:Name="RateLink" NavigateUri="http://apps.microsoft.com/windows/app/magic-led-lights/3e61f240-dbba-4a7d-b419-df93e2ed29d6" 
+                                <HyperlinkButton x:Name="RateLink" NavigateUri="https://www.microsoft.com/store/apps/9nmtd6jl8lxf" 
                                             Click="OnNavigateUrl"
                                             Style="{StaticResource LocalHyperlinkStyle}">nice rating</HyperlinkButton>
                             </InlineUIContainer>

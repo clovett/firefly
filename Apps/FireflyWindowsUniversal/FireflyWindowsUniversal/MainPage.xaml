@@ -49,6 +49,7 @@
             <AppBarButton x:Name="PauseButton" Icon="Pause" Click="OnPause"/>-->
             <AppBarButton x:Name="RefreshButton" Icon="Refresh" Click="OnRefresh" Label="Refresh"/>
             <AppBarButton x:Name="HelphButton" Icon="Help" Click="OnHelp" Label="Settings"/>
+            <AppBarButton x:Name="FullscreenButton" Icon="Fullscreen" Click="OnFullscreen" Label="Fullscreen"/>
         </CommandBar>
     </Page.BottomAppBar>
 </Page>
