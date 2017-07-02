@@ -44,14 +44,8 @@ namespace FireflyWindows
             CheckNetworkStatus();
             SetArmIcon();
             this.SizeChanged += MainPage_SizeChanged;
-            this.BackgroundImage.Loaded += BackgroundImage_Loaded;
         }
-
-        private void BackgroundImage_Loaded(object sender, RoutedEventArgs e)
-        {
-            ResizeImage(pageSize);
-        }
-
+        
         private void MainPage_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             pageSize = e.NewSize;
@@ -72,16 +66,19 @@ namespace FireflyWindows
                 double hScale = pageSize.Height / BackgroundImage.Height;
                 double max = Math.Max(wScale, hScale);
 
-                if (pageSize.Width > pageSize.Height)
+                // keep it centered.
+                double offsetX = (((BackgroundImage.Width * wScale) - BackgroundImage.Width) / 2) * max;
+                double offsetY = (((BackgroundImage.Height * hScale) - BackgroundImage.Height) / 2) * max;
+                MatrixTransform mat = new MatrixTransform() { Matrix = new Windows.UI.Xaml.Media.Matrix(max, 0, 0, max, offsetX, offsetY) };
+                BackgroundImage.RenderTransform = mat;
+            }
+            else
+            {
+                // wait for image to be loaded
+                delayedActions.StartDelayedAction("ResizeImage", () =>
                 {
-                    BackgroundImage.ClearValue(Image.RenderTransformProperty);
-                    BackgroundImage.RenderTransform = new ScaleTransform() { ScaleX = max, ScaleY = max };
-                }
-                else
-                {
-                    MatrixTransform mat = new MatrixTransform() {  Matrix = new Windows.UI.Xaml.Media.Matrix(max, 0, 0, max, )}
-                    BackgroundImage.RenderTransform = new RotateTransform() { Angle = 90, CenterX = src.PixelWidth / 2, CenterY = src.PixelHeight / 2 };
-                }
+                    ResizeImage(this.pageSize);
+                }, TimeSpan.FromMilliseconds(100));
             }
         }
 

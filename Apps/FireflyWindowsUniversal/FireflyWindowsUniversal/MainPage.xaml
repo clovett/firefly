@@ -16,8 +16,10 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Image x:Name="BackgroundImage" Grid.RowSpan="3" Source="Assets/fireworks.png" Opacity="0.5"/>
-        
+        <Canvas>
+            <Image x:Name="BackgroundImage" Grid.RowSpan="3" Source="Assets/fireworks.png" Opacity="0.5"/>
+        </Canvas>
+
         <GridView x:Name="HubGrid" >
             <GridView.ItemTemplate>
                 <DataTemplate>
