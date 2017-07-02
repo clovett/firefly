@@ -183,9 +183,9 @@ namespace FireflyWindows
 
         }
 
-        private void OnSettings(object sender, RoutedEventArgs e)
+        private void OnHelp(object sender, RoutedEventArgs e)
         {
-
+            this.Frame.Navigate(typeof(HelpPage));
         }
 
         bool armed = false;
@@ -239,5 +239,6 @@ namespace FireflyWindows
 
         int colorPosition = 0;
         bool lightsOn = false;
+
     }
 }

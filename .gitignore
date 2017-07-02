@@ -219,3 +219,4 @@ $RECYCLE.BIN/
 sdkconfig
 sdkconfig.old
 /esp_projects/hub/.vscode
+project.lock.json

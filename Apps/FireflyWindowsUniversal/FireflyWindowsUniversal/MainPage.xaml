@@ -48,7 +48,7 @@
             <AppBarButton x:Name="StopButton" Icon="Stop" Click="OnStop"/>
             <AppBarButton x:Name="PauseButton" Icon="Pause" Click="OnPause"/>-->
             <AppBarButton x:Name="RefreshButton" Icon="Refresh" Click="OnRefresh" Label="Refresh"/>
-            <AppBarButton x:Name="SettingshButton" Icon="Setting" Click="OnSettings" Label="Settings"/>
+            <AppBarButton x:Name="HelphButton" Icon="Help" Click="OnHelp" Label="Settings"/>
         </CommandBar>
     </Page.BottomAppBar>
 </Page>
