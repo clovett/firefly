@@ -38,17 +38,15 @@
 
     <Page.BottomAppBar>
         <CommandBar>
-            <AppBarButton x:Name="LightsButton" Icon="View" Click="OnToggleLights" HorizontalAlignment="Left"
-                                Style="{StaticResource LightsOnAppBarButtonStyle}"/>
-            
-            <AppBarButton x:Name="ArmButton" Icon="Favorite" Click="OnArm" HorizontalAlignment="Left"
-                                Style="{StaticResource ArmAppBarButtonStyle}"/>
-            
+            <AppBarButton x:Name="LightsButton" Icon="View" Click="OnToggleLights" HorizontalAlignment="Left" Label="Lights"/>
+
+            <AppBarButton x:Name="ArmButton" Icon="Favorite" Click="OnArm" HorizontalAlignment="Left" Label="Arm"/>
+
             <!--<AppBarButton x:Name="PlayButton" Icon="Play" Click="OnPlay"/>
             <AppBarButton x:Name="StopButton" Icon="Stop" Click="OnStop"/>
             <AppBarButton x:Name="PauseButton" Icon="Pause" Click="OnPause"/>-->
-            <AppBarButton x:Name="RefreshButton" Icon="Refresh" Click="OnRefresh"/>
-            <AppBarButton x:Name="SettingshButton" Icon="Setting" Click="OnSettings"/>
+            <AppBarButton x:Name="RefreshButton" Icon="Refresh" Click="OnRefresh" Label="Refresh"/>
+            <AppBarButton x:Name="SettingshButton" Icon="Setting" Click="OnSettings" Label="Settings"/>
         </CommandBar>
     </Page.BottomAppBar>
 </Page>

@@ -33,6 +33,6 @@
                 </ItemsPanelTemplate>
             </GridView.ItemsPanel>
         </GridView>
-        <TextBlock Foreground="Salmon" Text="{Binding ErrorMessage}" Grid.Row="2" FontSize="12"/>
+        <TextBlock Margin="2" Foreground="Salmon" Text="{Binding ErrorMessage}" Grid.Row="2" FontSize="12" TextWrapping="Wrap"/>
     </Grid>
 </UserControl>

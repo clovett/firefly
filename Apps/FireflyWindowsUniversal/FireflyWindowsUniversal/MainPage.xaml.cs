@@ -80,6 +80,7 @@ namespace FireflyWindows
                 try
                 {
                     await e.ConnectAsync();
+                    AddMessage("Hub reconnected: " + e.RemoteAddress);
                 }
                 catch (Exception ex)
                 {
@@ -93,6 +94,7 @@ namespace FireflyWindows
             try
             {
                 await e.Reconnect();
+                AddMessage("Hub reconnected: " + e.RemoteAddress);
             }
             catch (Exception ex)
             {
