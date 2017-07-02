@@ -128,6 +128,8 @@ namespace FireflyWindows
             }
             hubList.Clear();
             locator.Reset();
+            lightsOn = false;
+            armed = false;
         }
 
         private void OnPause(object sender, RoutedEventArgs e)
@@ -191,6 +193,7 @@ namespace FireflyWindows
             Color.FromArgb(0xff, 0x50,0,0x50),
             Color.FromArgb(0xff, 0x50,0x50,0),
             Color.FromArgb(0xff, 0x0,0x50,0x50),
+            Color.FromArgb(0,0,0,0), // off
         };
 
         int colorPosition = 0;
