@@ -50,7 +50,7 @@
                             <Run x:Name="VersionTextRun" Foreground="LightSkyBlue">FireFly Version {0}</Run>
                         </Paragraph>
                         <Paragraph Margin="10">
-                            <Run>This app allows you to control your Firefly Hubs over Wifi.
+                            <Run>This app allows you to control your Firefly hubs over Wifi.
                                 For more information and help with any issues, see:&#xA0;</Run>
                             <InlineUIContainer>
                                 <HyperlinkButton x:Name="GithubLink" 
