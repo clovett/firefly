@@ -240,13 +240,15 @@ namespace FireflyWindows
 
         int colorPosition = 0;
         bool lightsOn = false;
+        bool fullScreen = false;
 
         private void OnFullscreen(object sender, RoutedEventArgs e)
         {
             AppBarButton button = (AppBarButton)sender;
             var view = ApplicationView.GetForCurrentView();
-            if (view.IsFullScreen)
+            if (fullScreen)
             {
+                fullScreen = false;
                 view.ExitFullScreenMode();
                 button.Icon = new SymbolIcon(Symbol.FullScreen);
             }
@@ -254,6 +256,7 @@ namespace FireflyWindows
             {
                 if (view.TryEnterFullScreenMode())
                 {
+                    fullScreen = true;
                     button.Icon = new SymbolIcon(Symbol.BackToWindow);
                 }
             }
