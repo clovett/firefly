@@ -63,6 +63,7 @@ namespace FireflyWindows
                     PageCommandBar.PrimaryCommands.Add(FullscreenButton);
                 }
             }
+
             else
             {
                 if (wideMode)
