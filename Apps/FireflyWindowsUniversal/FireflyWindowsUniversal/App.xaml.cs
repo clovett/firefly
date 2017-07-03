@@ -15,6 +15,8 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace FireflyWindows
 {
@@ -23,6 +25,9 @@ namespace FireflyWindows
     /// </summary>
     sealed partial class App : Application
     {
+        private Settings settings;
+        private DelayedActions saveActions = new DelayedActions();
+
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -33,15 +38,25 @@ namespace FireflyWindows
             this.Suspending += OnSuspending;
         }
 
+
+        public Settings Settings
+        {
+            get { return settings; }
+        }
+
         /// <summary>
         /// Invoked when the application is launched normally by the end user.  Other entry points
         /// will be used such as when the application is launched to open a specific file.
         /// </summary>
         /// <param name="e">Details about the launch request and process.</param>
-        protected override void OnLaunched(LaunchActivatedEventArgs e)
+        protected async override void OnLaunched(LaunchActivatedEventArgs e)
         {
             Frame rootFrame = Window.Current.Content as Frame;
             UiDispatcher.Initialize();
+
+            settings = await Settings.LoadAsync();
+            settings.PropertyChanged += OnSettingsChanged;
+
 
             // Do not repeat app initialization when the Window already has content,
             // just ensure that the window is active
@@ -73,6 +88,17 @@ namespace FireflyWindows
                 // Ensure the current window is active
                 Window.Current.Activate();
             }
+        }
+
+
+        private void OnSettingsChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            saveActions.StartDelayedAction("SaveSettings", async () =>
+            {
+                Debug.WriteLine("saving settings");
+                await this.settings.SaveAsync();
+
+            }, TimeSpan.FromSeconds(1));
         }
 
         /// <summary>

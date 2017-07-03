@@ -1,4 +1,5 @@
 ﻿using BleLights.SharedControls;
+using FireflyWindows.Utilities;
 using FireflyWindows.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -158,12 +159,19 @@ namespace FireflyWindows
             base.OnNavigatedTo(e);
         }
 
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            locator.StopFindingHubs();
+            base.OnNavigatedFrom(e);
+        }
+
         private void OnStop(object sender, RoutedEventArgs e)
         {
         }
 
         private void OnRefresh(object sender, RoutedEventArgs e)
         {
+            playPos = 0;
             if (lightsOn)
             {
                 SetColor(0, 0, 0, 0);
@@ -174,29 +182,84 @@ namespace FireflyWindows
             armed = false;
         }
 
+        int playPos = 0;
+        bool paused = false;
+
         private void OnPause(object sender, RoutedEventArgs e)
         {
-
+            PlayButton.Visibility = Visibility.Visible;
+            PauseButton.Visibility = Visibility.Collapsed;
+            paused = true;
         }
 
         private void OnPlay(object sender, RoutedEventArgs e)
         {
+            PlayButton.Visibility = Visibility.Collapsed;
+            PauseButton.Visibility = Visibility.Visible;
+            if (playPos == -1)
+            {
+                playPos = 0;
+            }
+            delayedActions.StartDelayedAction("PlayNext", () => { PlayNext(); }, TimeSpan.FromSeconds(0));
+        }
 
+        private void PlayNext()
+        {
+            bool done = false;
+            foreach (var hub in this.hubList)
+            {
+                FireflyHub fh = hub.Hub;
+                if (fh.Tubes == playPos)
+                {
+                    playPos = 0;
+                    // done!
+                    done = true;
+                }
+                else { 
+                    hub.Hub.FireTube(playPos);
+                    playPos++;
+                }
+            }
+            if (done)
+            {
+                PlayButton.Visibility = Visibility.Visible;
+                PauseButton.Visibility = Visibility.Collapsed;
+            }
+            else if (!paused)
+            {
+                int speed = Settings.Instance.PlaySpeed;
+                delayedActions.StartDelayedAction("PlayNext", () => { PlayNext(); }, TimeSpan.FromSeconds(speed));
+            }
         }
 
         private void OnHelp(object sender, RoutedEventArgs e)
         {
             this.Frame.Navigate(typeof(HelpPage));
         }
-
+        private void OnSettings(object sender, RoutedEventArgs e)
+        {
+            this.Frame.Navigate(typeof(SettingsPage));
+        }
         bool armed = false;
 
         private void OnArm(object sender, RoutedEventArgs e)
         {
+            Color c = ColorNames.ParseColor(Settings.Instance.ArmColor);
             armed = !armed;
             foreach (var hub in this.hubList)
             {
                 hub.Hub.Arm(armed);
+                if (lightsOn)
+                {
+                    if (armed)
+                    {
+                        hub.Hub.SetColor(c.A, c.R, c.G, c.B);
+                    }
+                    else
+                    {
+                        hub.Hub.SetColor(0, 0, 0, 0);
+                    }
+                }
             }
             SetArmIcon();
         }
@@ -261,5 +324,6 @@ namespace FireflyWindows
                 }
             }
         }
+
     }
 }

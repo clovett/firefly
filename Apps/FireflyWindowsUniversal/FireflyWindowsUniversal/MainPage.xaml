@@ -44,11 +44,11 @@
 
             <AppBarButton x:Name="ArmButton" Icon="Favorite" Click="OnArm" HorizontalAlignment="Left" Label="Arm"/>
 
-            <!--<AppBarButton x:Name="PlayButton" Icon="Play" Click="OnPlay"/>
-            <AppBarButton x:Name="StopButton" Icon="Stop" Click="OnStop"/>
-            <AppBarButton x:Name="PauseButton" Icon="Pause" Click="OnPause"/>-->
+            <AppBarButton x:Name="PlayButton" Icon="Play" Click="OnPlay"/>
+            <AppBarButton x:Name="PauseButton" Icon="Pause" Click="OnPause" Visibility="Collapsed"/>
             <AppBarButton x:Name="RefreshButton" Icon="Refresh" Click="OnRefresh" Label="Refresh"/>
-            <AppBarButton x:Name="HelphButton" Icon="Help" Click="OnHelp" Label="Settings"/>
+            <AppBarButton x:Name="HelpButton" Icon="Help" Click="OnHelp" Label="Help"/>
+            <AppBarButton x:Name="SettingsButton" Icon="Setting" Click="OnSettings" Label="Settings"/>
             <AppBarButton x:Name="FullscreenButton" Icon="Fullscreen" Click="OnFullscreen" Label="Fullscreen"/>
         </CommandBar>
     </Page.BottomAppBar>

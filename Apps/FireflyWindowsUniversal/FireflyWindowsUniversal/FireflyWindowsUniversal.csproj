@@ -116,8 +116,14 @@
     <Compile Include="HelpPage.xaml.cs">
       <DependentUpon>HelpPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="SettingsPage.xaml.cs">
+      <DependentUpon>SettingsPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Utilities\ColorNames.cs" />
     <Compile Include="Utilities\ConnectedBackgroundConverter.cs" />
     <Compile Include="Utilities\DelayedAction.cs" />
+    <Compile Include="Utilities\IsolatedStorage.cs" />
+    <Compile Include="Utilities\Settings.cs" />
     <Compile Include="Utilities\UiDispatcher.cs" />
     <Compile Include="ViewModels\HubModel.cs" />
   </ItemGroup>
@@ -158,6 +164,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="HelpPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="SettingsPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

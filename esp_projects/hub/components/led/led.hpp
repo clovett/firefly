@@ -14,7 +14,6 @@ public:
     void ramp(uint8_t brightness, uint8_t red, uint8_t green, uint8_t blue, int milliseconds);
     void blink(uint8_t brightness, uint8_t red, uint8_t green, uint8_t blue, int millisecondsDelay);
 
-    // todo: add functions for controlling LED strip...
     void run();
 private:
     void allOff();

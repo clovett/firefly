@@ -65,6 +65,11 @@ namespace FireflyWindows
 
         private void FindHubs()
         {
+            if (findRunning)
+            {
+                // another thread is already running
+                return;
+            }
             findRunning = true;
             try
             {
