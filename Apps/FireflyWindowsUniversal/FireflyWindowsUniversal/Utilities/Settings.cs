@@ -14,6 +14,7 @@ namespace BleLights.SharedControls
         static Mutex fileLock = new Mutex();
         int playSpeed = 3;
         string armColor = "red";
+        int burnTime = 500; // half a second
 
         static Settings _instance;
 
@@ -47,6 +48,23 @@ namespace BleLights.SharedControls
                 {
                     playSpeed = value;
                     OnPropertyChanged("HasMotionSensor");
+                }
+            }
+        }
+
+        public int BurnTime
+        {
+            get
+            {
+                return burnTime;
+            }
+
+            set
+            {
+                if (burnTime != value)
+                {
+                    burnTime = value;
+                    OnPropertyChanged("BurnTime");
                 }
             }
         }

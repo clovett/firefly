@@ -27,7 +27,6 @@ static const char *FIND_HUB_BROADCAST = "FIREFLY-FIND-HUB";
 static const char *FIND_HUB_RESPONSE = "FIREFLY-HUB";
 const int FireflyBroadcastPort = 13777; // the magic firefly ports
 const int FireflyTcpPort = 13787; // the magic firefly ports
-const int MaxTubes = 10;
 static bool LedInitialized = false;
 
 Wifi wifi;
@@ -42,20 +41,19 @@ void initialize_leds(){
   }
 }
 
-int sense_tubes(int start, int end)
+int pack_tube_state(int start, int end)
 {
   int rc = 0;
   for(int i = end - 1; i >= start; i--)
   {
     rc <<= 1;
-    rc += tubes.sense(i); 
+    rc += tubes.get_tube_state(i); 
   }
   return rc;
 }
 
 void handle_command(FireMessage& msg)
 {
-  int tube = 0;
   if (msg.header == MagicHeader && msg.crc_valid)
   {
     switch (msg.command)
@@ -64,7 +62,7 @@ void handle_command(FireMessage& msg)
         // return number of tubes.
         ESP_LOGI(TAG, "Info request");
         msg.command = Ack;
-        msg.arg1 = MaxTubes;
+        msg.arg1 = NUM_TUBES;
         msg.arg2 = 0;
         // todo: we could also sense loaded tubes right?
         // then perhaps return a bitmap of loaded vs empty tubes.
@@ -73,8 +71,8 @@ void handle_command(FireMessage& msg)
         // heartbeat, echo back simple response.
         ESP_LOGI(TAG, "heartbeat ping");
         msg.command = Ack;
-        msg.arg1 = sense_tubes(0,5);
-        msg.arg2 = sense_tubes(5,10);
+        msg.arg1 = pack_tube_state(0,5);
+        msg.arg2 = pack_tube_state(5,10);
         break;
     case Arm:// arm the hub !
         ESP_LOGI(TAG, "arming tubes %d", msg.arg1);
@@ -84,14 +82,13 @@ void handle_command(FireMessage& msg)
         
     case Fire:
         // fire !
-        tube = msg.tube();
-        if (tube < MaxTubes) {
-          ESP_LOGI(TAG, "firing tube %d", tube);
+        if (msg.arg1 < NUM_TUBES) {
+          ESP_LOGI(TAG, "firing tube %d", msg.arg1);
           msg.command = Ack;
-          tubes.fire(tube);
+          tubes.fire(msg.arg1, msg.arg2);
         }
         else {
-          ESP_LOGI(TAG, "tube index out of range %d", tube);
+          ESP_LOGI(TAG, "tube index out of range %d", msg.arg1);
           msg.command = Nack;
         }
         break;

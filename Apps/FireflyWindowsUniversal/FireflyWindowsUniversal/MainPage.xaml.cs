@@ -37,6 +37,7 @@ namespace FireflyWindows
         public MainPage()
         {
             hubs = ((App)App.Current).Hubs;
+
             this.InitializeComponent();
             HubGrid.ItemsSource = hubs.Hubs;
             Windows.Networking.Connectivity.NetworkInformation.NetworkStatusChanged += OnNetworkStatusChange;
@@ -141,7 +142,6 @@ namespace FireflyWindows
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
-            hubs.Stop();
             hubs.Message -= OnHubMessage;
             hubs.PlayComplete -= OnPlayComplete;
             base.OnNavigatedFrom(e);

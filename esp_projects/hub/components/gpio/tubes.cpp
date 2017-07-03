@@ -17,15 +17,12 @@ static const char *TAG = "tubes";
 //static xQueueHandle gpio_evt_queue = NULL;
 
 #define EN_RELAY GPIO_NUM_16
-#define NUM_GPIO 10
 
-#define FUSE_BURN_TIME 500  // milliseconds
-
-int tube_list[NUM_GPIO] = {
+int tube_list[NUM_TUBES] = {
   17,0,5,18,19,13,14,26,33,32
 };
 
-int sense_list[NUM_GPIO] = {
+int sense_list[NUM_TUBES] = {
     4,2,15,23,22,12,27,25,35,34
 };
 
@@ -50,8 +47,18 @@ static void gpio_task_example(void* arg)
 Tubes::Tubes(){
 }
 
+void sense_task(void *pvParameter)
+{
+    if (pvParameter != NULL){
+        Tubes* controller = (Tubes*)pvParameter;
+        controller->run_sensing();
+    }
+}
+
 int Tubes::init()
 {
+    memset(&tube_state[0], 0, NUM_TUBES);
+
     gpio_config_t io_conf;    
 
     ESP_LOGI(TAG, "init");
@@ -103,6 +110,9 @@ int Tubes::init()
     //hook isr handler for specific gpio pin again
     gpio_isr_handler_add(GPIO_NUM_0, gpio_isr_handler, (void*) GPIO_NUM_0);
 */
+
+    xTaskCreate(&sense_task, "sense_task", 2048, this, 5, NULL);
+
     ESP_LOGI(TAG, "init complete");
     return 0;
 }
@@ -112,20 +122,29 @@ void Tubes::arm(bool on)
     gpio_set_level(EN_RELAY, on ? 1 : 0);
 }
 
-void Tubes::fire(int tube)
+void Tubes::fire(int tube, int burnTime)
 {
-    if (tube >= 0 && tube < NUM_GPIO) {
+    if (tube >= 0 && tube < NUM_TUBES) {
+      ESP_LOGI(TAG, "firing tube %d for %d ms", tube, burnTime);
       int io = tube_list[tube];
       gpio_set_level((gpio_num_t)io, 1);   
-      vTaskDelay(FUSE_BURN_TIME / portTICK_PERIOD_MS);
+      vTaskDelay(burnTime / portTICK_PERIOD_MS);
       gpio_set_level((gpio_num_t)io, 0);
     }
 }
 
-int Tubes::sense(int tube)
-{
-    if (tube >= 0 && tube < NUM_GPIO) {
-        return gpio_get_level((gpio_num_t)sense_list[tube]);
+int Tubes::get_tube_state(int tube){
+    if (tube >= 0 && tube < NUM_TUBES){
+        return tube_state[tube];
     }
     return 0;
+}
+
+void Tubes::run_sensing() {
+    while (1) {
+        for (int i = 0; i < NUM_TUBES; i++){
+            tube_state[i] = gpio_get_level((gpio_num_t)sense_list[i]);
+        }
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
 }

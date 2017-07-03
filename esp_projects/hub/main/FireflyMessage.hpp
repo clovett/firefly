@@ -93,10 +93,6 @@ public:
         itoa(i, buf, 10);
         return std::string(buf);
     }
-
-    int tube() {
-      return arg1;
-    }
     
 private:
     void add_field(int field, const std::string& arg){

@@ -17,6 +17,7 @@ namespace FireflyWindows.ViewModels
         bool connected;
         string name;
         string error;
+        bool responding;
         ObservableCollection<TubeModel> tubes = new ObservableCollection<TubeModel>();
 
         public HubModel(FireflyHub e)

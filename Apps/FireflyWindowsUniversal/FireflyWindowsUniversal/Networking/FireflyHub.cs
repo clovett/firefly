@@ -223,9 +223,16 @@ namespace FireflyWindows
                     {
                         string formatted = msg.Format();
                         Debug.WriteLine("{0}: Sending message: {1}: {2}", this.RemoteAddress, msg.FireCommand, formatted);
+                        Stopwatch watch = new Stopwatch();
+                        watch.Start();
                         byte[] result = socket.SendReceive(Encoding.UTF8.GetBytes(formatted));
                         // our tcp protocol is synchronous request/response
                         response = FireflyMessage.Parse(result);
+                        watch.Stop();
+                        if (response != null)
+                        {
+                            Debug.WriteLine("{0}: Received response in {1}ms: {2}", this.RemoteAddress, watch.ElapsedMilliseconds, response.Format());
+                        }
                     }
                     catch (Exception e)
                     {
@@ -275,6 +282,11 @@ namespace FireflyWindows
         {
             LastHeartBeat = DateTime.Now;
             Debug.WriteLine("Heartbeat returned Arg1={0:x}, Arg2={1:x}", response.Arg1, response.Arg2);
+            if (!this.connected)
+            {
+                this.connected = true;
+                OnConnectionChanged();
+            }
             if (tubeState != null)
             {
                 // get sense info
@@ -344,6 +356,16 @@ namespace FireflyWindows
             {
                 SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Heartbeat });
                 await Task.Delay(1000);
+                if (queue.Count > 10)
+                {
+                    this.connected = false;
+                    OnConnectionChanged();
+                    OnError("Hub not responding...");
+                    lock(queue)
+                    {
+                        queue.Clear();
+                    }
+                } 
             }
             Debug.WriteLine("{0}: Heartbeat thread terminating", this.RemoteAddress);
         }
@@ -365,9 +387,9 @@ namespace FireflyWindows
             SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Arm, Arg1 = arm ? (byte)1 : (byte)0 });
         }
 
-        internal void FireTube(int i)
+        internal void FireTube(int i, int burnTimeMs)
         {
-            SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Fire, Arg1 = i});
+            SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Fire, Arg1 = i, Arg2 = burnTimeMs });
         }
 
         internal void SetColor(byte a, byte r, byte g, byte b)

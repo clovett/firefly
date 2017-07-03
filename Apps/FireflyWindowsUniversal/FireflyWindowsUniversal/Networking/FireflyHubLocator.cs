@@ -73,7 +73,10 @@ namespace FireflyWindows
             findRunning = true;
             try
             {
-                hubs.Clear();
+                lock (hubs)
+                {
+                    hubs.Clear();
+                }
                 var cancellationToken = wifiSearchTokenSource.Token;
                 while (!cancellationToken.IsCancellationRequested)
                 {
@@ -119,7 +122,7 @@ namespace FireflyWindows
         {
             lock (hubs)
             {
-                foreach (var item in hubs.Values)
+                foreach (var item in hubs.Values.ToArray())
                 {
                     item.Stop();
                     item.Close();

@@ -15,8 +15,9 @@ namespace FireflyWindows.ViewModels
         FireflyHubLocator locator = new FireflyHubLocator();
         ObservableCollection<HubModel> hubList = new ObservableCollection<HubModel>();
         DelayedActions delayedActions = new DelayedActions();
-        bool armed = false;
-        bool lightsOn = false;
+        bool armed;
+        bool lightsOn;
+        bool running;
 
         public event EventHandler<string> Message;
         public event EventHandler PlayComplete;
@@ -31,17 +32,21 @@ namespace FireflyWindows.ViewModels
 
         public void Start()
         {
-            playPos = 0;
-            hubList.Clear();
-            locator.Reset();
-            lightsOn = false;
-            armed = false;
+            if (!running)
+            {
+                running = true;
+                playPos = 0;
+                hubList.Clear();
+                locator.Reset();
+                lightsOn = false;
+                armed = false;
 
-            locator.HubAdded += OnFoundHub;
-            locator.HubConnected += OnHubConnected;
-            locator.HubDisconnected += OnHubDisconnected;
+                locator.HubAdded += OnFoundHub;
+                locator.HubConnected += OnHubConnected;
+                locator.HubDisconnected += OnHubDisconnected;
 
-            locator.StartFindingHubs();
+                locator.StartFindingHubs();
+            }
         }
 
         public void Stop()
@@ -55,10 +60,6 @@ namespace FireflyWindows.ViewModels
         private async void OnFoundHub(object sender, FireflyHub e)
         {
             OnMessage("Found hub at " + e.RemoteAddress + ":" + e.RemotePort);
-            UiDispatcher.RunOnUIThread(() =>
-            {
-                hubList.Add(new HubModel(e));
-            });
 
             try
             {
@@ -68,6 +69,11 @@ namespace FireflyWindows.ViewModels
             {
                 OnMessage("Connect failed: " + ex.Message);
             }
+
+            UiDispatcher.RunOnUIThread(() =>
+            {
+                hubList.Add(new HubModel(e));
+            });
         }
 
         void OnMessage(string text)
@@ -184,7 +190,7 @@ namespace FireflyWindows.ViewModels
                 }
                 else
                 {
-                    hub.Hub.FireTube(playPos);
+                    hub.Hub.FireTube(playPos, Settings.Instance.BurnTime);
                 }
             }
             if (done)

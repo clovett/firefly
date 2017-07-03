@@ -38,7 +38,7 @@ namespace FireflyWindows
                 int i = hub.Tubes.IndexOf(tube);
                 if (i >= 0)
                 {
-                    hub.Hub.FireTube(i);
+                    hub.Hub.FireTube(i, Settings.Instance.BurnTime);
                 }
             }
         }
