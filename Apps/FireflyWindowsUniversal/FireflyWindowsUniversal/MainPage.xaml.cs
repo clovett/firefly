@@ -31,23 +31,20 @@ namespace FireflyWindows
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        FireflyHubLocator locator = new FireflyHubLocator();
         DelayedActions delayedActions = new DelayedActions();
-        ObservableCollection<HubModel> hubList = new ObservableCollection<HubModel>();
+        HubManager hubs;
 
         public MainPage()
         {
-            locator.HubAdded += OnFoundHub;
-            locator.HubConnected += OnHubConnected;
-            locator.HubDisconnected += OnHubDisconnected;
+            hubs = ((App)App.Current).Hubs;
             this.InitializeComponent();
-            HubGrid.ItemsSource = hubList;
+            HubGrid.ItemsSource = hubs.Hubs;
             Windows.Networking.Connectivity.NetworkInformation.NetworkStatusChanged += OnNetworkStatusChange;
             CheckNetworkStatus();
             SetArmIcon();
             this.SizeChanged += MainPage_SizeChanged;
         }
-        
+
         private void MainPage_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             pageSize = e.NewSize;
@@ -95,54 +92,6 @@ namespace FireflyWindows
 
         }
 
-        private async void OnFoundHub(object sender, FireflyHub e)
-        {
-            AddMessage("Found hub at " + e.RemoteAddress + ":" + e.RemotePort);
-            UiDispatcher.RunOnUIThread(() =>
-            {
-                hubList.Add(new HubModel(e));
-            });
-
-            try
-            {
-                await e.ConnectAsync();
-            }
-            catch (Exception ex)
-            {
-                AddMessage("Connect failed: " + ex.Message);
-            }
-        }
-
-        private async void OnHubConnected(object sender, FireflyHub e)
-        {
-            // hearing from this hub again, let's make sure it is connected.
-            if (!e.Connected)
-            {
-                try
-                {
-                    await e.ConnectAsync();
-                    AddMessage("Hub reconnected: " + e.RemoteAddress);
-                }
-                catch (Exception ex)
-                {
-                    AddMessage("Connect failed: " + ex.Message);
-                }
-            }
-        }
-
-        private async void OnHubDisconnected(object sender, FireflyHub e)
-        {
-            try
-            {
-                await e.Reconnect();
-                AddMessage("Hub reconnected: " + e.RemoteAddress);
-            }
-            catch (Exception ex)
-            {
-                AddMessage("Reconnect failed: " + ex.Message);
-            }
-        }
-
 
         void AddMessage(string msg)
         {
@@ -155,14 +104,29 @@ namespace FireflyWindows
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            locator.StartFindingHubs();
+            hubs.Start();
+            hubs.Message += OnHubMessage;
+            hubs.PlayComplete += OnPlayComplete;
             base.OnNavigatedTo(e);
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
-            locator.StopFindingHubs();
+            hubs.Stop();
+            hubs.Message -= OnHubMessage;
+            hubs.PlayComplete -= OnPlayComplete;
             base.OnNavigatedFrom(e);
+        }
+
+        private void OnPlayComplete(object sender, EventArgs e)
+        {
+            PlayButton.Visibility = Visibility.Visible;
+            PauseButton.Visibility = Visibility.Collapsed;
+        }
+
+        private void OnHubMessage(object sender, string e)
+        {
+            AddMessage(e);
         }
 
         private void OnStop(object sender, RoutedEventArgs e)
@@ -171,66 +135,23 @@ namespace FireflyWindows
 
         private void OnRefresh(object sender, RoutedEventArgs e)
         {
-            playPos = 0;
-            if (lightsOn)
-            {
-                SetColor(0, 0, 0, 0);
-            }
-            hubList.Clear();
-            locator.Reset();
-            lightsOn = false;
-            armed = false;
+            hubs.Refresh();
         }
-
-        int playPos = 0;
-        bool paused = false;
 
         private void OnPause(object sender, RoutedEventArgs e)
         {
             PlayButton.Visibility = Visibility.Visible;
             PauseButton.Visibility = Visibility.Collapsed;
-            paused = true;
+            hubs.Pause();
         }
 
         private void OnPlay(object sender, RoutedEventArgs e)
         {
             PlayButton.Visibility = Visibility.Collapsed;
             PauseButton.Visibility = Visibility.Visible;
-            if (playPos == -1)
-            {
-                playPos = 0;
-            }
-            delayedActions.StartDelayedAction("PlayNext", () => { PlayNext(); }, TimeSpan.FromSeconds(0));
+            hubs.Play();
         }
 
-        private void PlayNext()
-        {
-            bool done = false;
-            foreach (var hub in this.hubList)
-            {
-                FireflyHub fh = hub.Hub;
-                if (fh.Tubes == playPos)
-                {
-                    playPos = 0;
-                    // done!
-                    done = true;
-                }
-                else { 
-                    hub.Hub.FireTube(playPos);
-                    playPos++;
-                }
-            }
-            if (done)
-            {
-                PlayButton.Visibility = Visibility.Visible;
-                PauseButton.Visibility = Visibility.Collapsed;
-            }
-            else if (!paused)
-            {
-                int speed = Settings.Instance.PlaySpeed;
-                delayedActions.StartDelayedAction("PlayNext", () => { PlayNext(); }, TimeSpan.FromSeconds(speed));
-            }
-        }
 
         private void OnHelp(object sender, RoutedEventArgs e)
         {
@@ -240,34 +161,17 @@ namespace FireflyWindows
         {
             this.Frame.Navigate(typeof(SettingsPage));
         }
-        bool armed = false;
 
         private void OnArm(object sender, RoutedEventArgs e)
         {
-            Color c = ColorNames.ParseColor(Settings.Instance.ArmColor);
-            armed = !armed;
-            foreach (var hub in this.hubList)
-            {
-                hub.Hub.Arm(armed);
-                if (lightsOn)
-                {
-                    if (armed)
-                    {
-                        hub.Hub.SetColor(c.A, c.R, c.G, c.B);
-                    }
-                    else
-                    {
-                        hub.Hub.SetColor(0, 0, 0, 0);
-                    }
-                }
-            }
+            hubs.ToggleArm();
             SetArmIcon();
         }
 
         void SetArmIcon()
         {
             SymbolIcon icon = (SymbolIcon)ArmButton.Icon;
-            icon.Symbol = armed ? Symbol.Favorite : Symbol.OutlineStar;
+            icon.Symbol = hubs.IsArmed ? Symbol.Favorite : Symbol.OutlineStar;
         }
 
         private void OnToggleLights(object sender, RoutedEventArgs e)
@@ -278,16 +182,7 @@ namespace FireflyWindows
                 colorPosition = 0;
             }
 
-            SetColor(c.A, c.R, c.G, c.B);
-        }
-
-        private void SetColor(byte a, byte r, byte g, byte b)
-        {
-            lightsOn = (r > 0 || g > 0 || b > 0);
-            foreach (var hub in this.hubList)
-            {
-                hub.Hub.SetColor(a, r, g, b);
-            }
+            hubs.SetColor(c.A, c.R, c.G, c.B);
         }
 
         Color[] favoriteColors = new Color[]
@@ -302,7 +197,6 @@ namespace FireflyWindows
         };
 
         int colorPosition = 0;
-        bool lightsOn = false;
         bool fullScreen = false;
 
         private void OnFullscreen(object sender, RoutedEventArgs e)

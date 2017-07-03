@@ -11,7 +11,7 @@ using Windows.UI.Xaml;
 
 namespace FireflyWindows.ViewModels
 {
-    class HubModel : INotifyPropertyChanged
+    public class HubModel : INotifyPropertyChanged
     {
         FireflyHub hub;
         bool connected;
@@ -133,7 +133,7 @@ namespace FireflyWindows.ViewModels
         }
     }
 
-    class TubeModel
+    public class TubeModel
     {
         HubModel owner;
 

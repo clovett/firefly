@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace FireflyWindows.Networking
 {
-    enum FireflyCommand
+    public enum FireflyCommand
     {
         None,
         Info = 'I',
@@ -24,7 +24,7 @@ namespace FireflyWindows.Networking
         Arm = 'X'
     }
 
-    class FireflyMessage
+    public class FireflyMessage
     {
         public int Header;
         public FireflyCommand FireCommand;

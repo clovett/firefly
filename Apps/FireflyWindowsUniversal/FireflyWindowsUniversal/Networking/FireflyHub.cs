@@ -11,7 +11,7 @@ using Windows.Networking;
 
 namespace FireflyWindows
 {
-    class FireflyHub
+    public class FireflyHub
     {
         const int MaximumMessageLength = 1000;
         public HostName LocalHost { get; internal set; }

@@ -17,6 +17,7 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using System.ComponentModel;
 using System.Diagnostics;
+using FireflyWindows.ViewModels;
 
 namespace FireflyWindows
 {
@@ -25,6 +26,7 @@ namespace FireflyWindows
     /// </summary>
     sealed partial class App : Application
     {
+        private HubManager hubs = new HubManager();
         private Settings settings;
         private DelayedActions saveActions = new DelayedActions();
 
@@ -38,6 +40,10 @@ namespace FireflyWindows
             this.Suspending += OnSuspending;
         }
 
+        public HubManager Hubs
+        {
+            get { return this.hubs; }
+        }
 
         public Settings Settings
         {

@@ -125,6 +125,7 @@
     <Compile Include="Utilities\IsolatedStorage.cs" />
     <Compile Include="Utilities\Settings.cs" />
     <Compile Include="Utilities\UiDispatcher.cs" />
+    <Compile Include="ViewModels\HubManager.cs" />
     <Compile Include="ViewModels\HubModel.cs" />
   </ItemGroup>
   <ItemGroup>
