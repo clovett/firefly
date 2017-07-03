@@ -31,10 +31,16 @@ namespace FireflyWindows.ViewModels
 
         public void Start()
         {
+            playPos = 0;
+            hubList.Clear();
+            locator.Reset();
+            lightsOn = false;
+            armed = false;
+
             locator.HubAdded += OnFoundHub;
             locator.HubConnected += OnHubConnected;
             locator.HubDisconnected += OnHubDisconnected;
-            locator.Reset();
+
             locator.StartFindingHubs();
         }
 

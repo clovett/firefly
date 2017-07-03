@@ -49,8 +49,36 @@ namespace FireflyWindows
         {
             pageSize = e.NewSize;
             ResizeImage(pageSize);
+
+            if (pageSize.Width > 800)
+            {
+                if (!wideMode)
+                {
+                    wideMode = true;
+                    PageCommandBar.SecondaryCommands.Remove(RefreshButton);
+                    PageCommandBar.PrimaryCommands.Add(RefreshButton);
+                    PageCommandBar.SecondaryCommands.Remove(LightsButton);
+                    PageCommandBar.PrimaryCommands.Add(LightsButton);
+                    PageCommandBar.SecondaryCommands.Remove(FullscreenButton);
+                    PageCommandBar.PrimaryCommands.Add(FullscreenButton);
+                }
+            }
+            else
+            {
+                if (wideMode)
+                {
+                    wideMode = false;
+                    PageCommandBar.PrimaryCommands.Remove(RefreshButton);
+                    PageCommandBar.SecondaryCommands.Add(RefreshButton);
+                    PageCommandBar.PrimaryCommands.Remove(LightsButton);
+                    PageCommandBar.SecondaryCommands.Add(LightsButton);
+                    PageCommandBar.PrimaryCommands.Remove(FullscreenButton);
+                    PageCommandBar.SecondaryCommands.Add(FullscreenButton);
+                }
+            }
         }
 
+        bool wideMode;
         Size pageSize;
 
         void ResizeImage(Size pageSize)
