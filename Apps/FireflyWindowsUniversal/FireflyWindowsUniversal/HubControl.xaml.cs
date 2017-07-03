@@ -1,4 +1,5 @@
-﻿using FireflyWindows.ViewModels;
+﻿using BleLights.SharedControls;
+using FireflyWindows.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,7 +30,6 @@ namespace FireflyWindows
         private void OnTubeSelected(object sender, RoutedEventArgs e)
         {
             Button tubeButton = (Button)sender;
-            tubeButton.Background = new SolidColorBrush(Colors.Green);
 
             HubModel hub = (HubModel)this.DataContext;
             TubeModel tube = (TubeModel)tubeButton.DataContext;

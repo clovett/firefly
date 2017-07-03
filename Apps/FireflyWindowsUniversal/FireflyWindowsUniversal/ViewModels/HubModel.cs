@@ -26,6 +26,19 @@ namespace FireflyWindows.ViewModels
             e.MessageReceived += OnMessageReceived;
             e.Error += OnHubError;
             e.ConnectionChanged += OnConnectionChanged;
+            e.StateChanged += OnStateChanged;
+        }
+
+        private void OnStateChanged(object sender, EventArgs e)
+        {
+            UiDispatcher.RunOnUIThread(() =>
+            {
+                for (int i = 0; i < tubes.Count; i++)
+                {
+                    TubeModel m = tubes[i];
+                    m.Loaded = hub.GetTubeState(i) > 0;
+                }
+            });
         }
 
         private void OnConnectionChanged(object sender, EventArgs e)
@@ -133,9 +146,12 @@ namespace FireflyWindows.ViewModels
         }
     }
 
-    public class TubeModel
+    public class TubeModel : INotifyPropertyChanged
     {
         HubModel owner;
+        bool loaded;
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public TubeModel(HubModel owner)
         {
@@ -144,5 +160,29 @@ namespace FireflyWindows.ViewModels
 
         public HubModel Owner {  get { return this.owner; } }
 
+        public bool Loaded
+        {
+            get
+            {
+                return loaded;
+            }
+            set
+            {
+                if (loaded != value)
+                {
+                    loaded = value;
+                    OnPropertyChanged("Loaded");
+
+                }
+            }
+        }
+
+        private void OnPropertyChanged(string name)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(name));
+            }
+        }
     }
 }

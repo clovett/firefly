@@ -9,10 +9,11 @@
     Padding="0"
     Width="340" Height="150">
     <UserControl.Resources>
-        <local:ConnectedBackgroundConverter x:Key="ConnectedBackgroundConverter"/>
+        <local:FalseBackgroundConverter x:Key="FalseBackgroundConverter"/>
+        <local:TrueBackgroundConverter x:Key="TrueBackgroundConverter"/>
     </UserControl.Resources>
 
-    <Grid Background="{Binding Path=Connected, Converter={StaticResource ConnectedBackgroundConverter}, ConverterParameter=#80805050}">
+    <Grid Background="{Binding Path=Connected, Converter={StaticResource FalseBackgroundConverter}, ConverterParameter=#80805050}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -24,7 +25,8 @@
               ScrollViewer.HorizontalScrollBarVisibility="Hidden">
             <GridView.ItemTemplate>
                 <DataTemplate>
-                    <Button Style="{StaticResource TubeButton}" Click="OnTubeSelected"/>
+                    <Button Style="{StaticResource TubeButton}" Click="OnTubeSelected" 
+                            Background="{Binding Path=Loaded, Converter={StaticResource TrueBackgroundConverter}, ConverterParameter=Red}"/>
                 </DataTemplate>
             </GridView.ItemTemplate>
             <GridView.ItemsPanel>

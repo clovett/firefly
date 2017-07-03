@@ -42,6 +42,17 @@ void initialize_leds(){
   }
 }
 
+int sense_tubes(int start, int end)
+{
+  int rc = 0;
+  for(int i = end - 1; i >= start; i--)
+  {
+    rc <<= 1;
+    rc += tubes.sense(i); 
+  }
+  return rc;
+}
+
 void handle_command(FireMessage& msg)
 {
   int tube = 0;
@@ -62,8 +73,8 @@ void handle_command(FireMessage& msg)
         // heartbeat, echo back simple response.
         ESP_LOGI(TAG, "heartbeat ping");
         msg.command = Ack;
-        msg.arg1 = 0;
-        msg.arg2 = 0;
+        msg.arg1 = sense_tubes(0,5);
+        msg.arg2 = sense_tubes(5,10);
         break;
     case Arm:// arm the hub !
         ESP_LOGI(TAG, "arming tubes %d", msg.arg1);

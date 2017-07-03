@@ -13,11 +13,10 @@ using Windows.UI.Xaml.Media;
 
 namespace FireflyWindows
 {
-    class ConnectedBackgroundConverter : IValueConverter
+    class FalseBackgroundConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            Debug.WriteLine("ConnectedBackgroundConverter " + value);
             if (value is bool)
             {
                 if (!(bool)value)

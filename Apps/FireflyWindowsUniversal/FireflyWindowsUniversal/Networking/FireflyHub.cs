@@ -30,9 +30,11 @@ namespace FireflyWindows
         ManualResetEvent available = new ManualResetEvent(false);
         ManualResetEvent queueEmpty = new ManualResetEvent(false);
         Mutex queueLock = new Mutex();
+        const int HeartbeatDelay = 2000; // 1 second
 
         public event EventHandler<string> Error;
         public event EventHandler ConnectionChanged;
+        public event EventHandler StateChanged;
 
         internal async Task ConnectAsync()
         {
@@ -117,10 +119,33 @@ namespace FireflyWindows
             }
         }
 
+        private int tubes;
+        private int[] tubeState;
+
         /// <summary>
         /// Get or set the number of tubes
         /// </summary>
-        public int Tubes { get; set; }
+        public int Tubes
+        {
+            get { return tubes; }
+            set
+            {
+                if (tubes != value)
+                {
+                    tubes = value;
+                    tubeState = new int[tubes];
+                }
+            }
+        }
+
+        public int GetTubeState(int tube)
+        {
+            if (tubeState != null && tube >= 0 && tube < tubeState.Length)
+            {
+                return tubeState[tube];
+            }
+            return 0;
+        }
 
         public DateTime LastHeartBeat { get; private set; }
 
@@ -249,6 +274,39 @@ namespace FireflyWindows
         private void HandleHeartbeatResponse(FireflyMessage response)
         {
             LastHeartBeat = DateTime.Now;
+            Debug.WriteLine("Heartbeat returned Arg1={0:x}, Arg2={1:x}", response.Arg1, response.Arg2);
+            if (tubeState != null)
+            {
+                // get sense info
+                int value = response.Arg1;
+                for (int i = 0; i < 5; i++)
+                {
+                    int on = (value & 0x1);
+                    tubeState[i] = on;
+                    if (on > 0)
+                    {
+                        Debug.WriteLine("Tube {0} is loaded!", i);
+                    }
+                    value >>= 1;
+                }
+                value = response.Arg2;
+
+                for (int i = 0; i < 5; i++)
+                {
+                    int on = (value & 0x1);
+                    tubeState[5 + i] = on;
+                    if (on > 0)
+                    {
+                        Debug.WriteLine("Tube {0} is loaded!", i + 5);
+                    }
+                    value >>= 1;
+                }
+
+                if (StateChanged != null)
+                {
+                    StateChanged(this, EventArgs.Empty);
+                }
+            }
         }
 
         private void HandleFireResponse(FireflyMessage response)
@@ -271,6 +329,7 @@ namespace FireflyWindows
             {
                 case FireflyCommand.Ack:
                     Tubes = response.Arg1;
+
                     break;
                 default:
                     OnError("Error (" + response.FireCommand + ") getting info");
@@ -284,7 +343,7 @@ namespace FireflyWindows
             while (running && !closing)
             {
                 SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Heartbeat });
-                await Task.Delay(3000);
+                await Task.Delay(1000);
             }
             Debug.WriteLine("{0}: Heartbeat thread terminating", this.RemoteAddress);
         }

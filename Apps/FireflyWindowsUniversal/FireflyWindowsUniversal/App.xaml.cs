@@ -18,6 +18,7 @@ using Windows.UI.Xaml.Navigation;
 using System.ComponentModel;
 using System.Diagnostics;
 using FireflyWindows.ViewModels;
+using Windows.Phone.UI.Input;
 
 namespace FireflyWindows
 {
@@ -38,6 +39,22 @@ namespace FireflyWindows
         {
             this.InitializeComponent();
             this.Suspending += OnSuspending;
+
+            string nspace = "Windows.Phone.UI.Input.HardwareButtons";
+            if (Windows.Foundation.Metadata.ApiInformation.IsTypePresent(nspace))
+            {
+                HardwareButtons.BackPressed += OnBackPressed;
+            }
+
+        }
+        private void OnBackPressed(object sender, BackPressedEventArgs e)
+        {
+            Frame frame = Window.Current.Content as Frame;
+            if (frame != null && frame.CanGoBack)
+            {
+                frame.GoBack();
+                e.Handled = true;
+            }
         }
 
         public HubManager Hubs

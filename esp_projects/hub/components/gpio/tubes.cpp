@@ -26,7 +26,7 @@ int tube_list[NUM_GPIO] = {
 };
 
 int sense_list[NUM_GPIO] = {
-  4,2,15,23,22,12,27,25,34,35
+    4,2,15,23,22,12,27,25,35,34
 };
 
 /*
@@ -73,7 +73,7 @@ int Tubes::init()
     ESP_LOGI(TAG, "configure gpio input");
 
     //interrupt of rising edge
-    io_conf.intr_type = GPIO_INTR_POSEDGE;
+    io_conf.intr_type = GPIO_INTR_DISABLE; // GPIO_INTR_POSEDGE;
     //bit mask of the pins, use GPIO4/5 here
     io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
     //set as input mode
@@ -114,7 +114,7 @@ void Tubes::arm(bool on)
 
 void Tubes::fire(int tube)
 {
-    if (tube < NUM_GPIO) {
+    if (tube >= 0 && tube < NUM_GPIO) {
       int io = tube_list[tube];
       gpio_set_level((gpio_num_t)io, 1);   
       vTaskDelay(FUSE_BURN_TIME / portTICK_PERIOD_MS);
@@ -124,6 +124,8 @@ void Tubes::fire(int tube)
 
 int Tubes::sense(int tube)
 {
-    // todo
+    if (tube >= 0 && tube < NUM_GPIO) {
+        return gpio_get_level((gpio_num_t)sense_list[tube]);
+    }
     return 0;
 }

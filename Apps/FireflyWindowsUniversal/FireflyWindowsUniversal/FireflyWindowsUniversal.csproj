@@ -119,8 +119,9 @@
     <Compile Include="SettingsPage.xaml.cs">
       <DependentUpon>SettingsPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Utilities\TrueBackgroundConverter.cs" />
     <Compile Include="Utilities\ColorNames.cs" />
-    <Compile Include="Utilities\ConnectedBackgroundConverter.cs" />
+    <Compile Include="Utilities\FalseBackgroundConverter.cs" />
     <Compile Include="Utilities\DelayedAction.cs" />
     <Compile Include="Utilities\IsolatedStorage.cs" />
     <Compile Include="Utilities\Settings.cs" />
@@ -173,7 +174,11 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <SDKReference Include="WindowsMobile, Version=10.0.10240.0">
+      <Name>Windows Mobile Extensions for the UWP</Name>
+    </SDKReference>
+  </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>
