@@ -33,7 +33,10 @@ namespace FireflyWindows
             InkDrawingAttributes inkDrawingAttributes = new InkDrawingAttributes();
             inkDrawingAttributes.Color = Windows.UI.Colors.Blue;
             GraphCanvas.InkPresenter.UpdateDefaultDrawingAttributes(inkDrawingAttributes);
-            GraphCanvas.InkPresenter.InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse | Windows.UI.Core.CoreInputDeviceTypes.Pen;
+            GraphCanvas.InkPresenter.InputDeviceTypes = Windows.UI.Core.CoreInputDeviceTypes.Mouse |
+                Windows.UI.Core.CoreInputDeviceTypes.Pen |
+                Windows.UI.Core.CoreInputDeviceTypes.Touch;
+
             GraphCanvas.InkPresenter.StrokesCollected += InkPresenter_StrokesCollected;
         }
 
@@ -51,8 +54,11 @@ namespace FireflyWindows
                 HubManager hubs = ((App)App.Current).Hubs;
                 double goal = 100; // shots
 
+                Backdrop.Children.Clear();
+                InkStroke newStroke = args.Strokes[0];
+                
                 List<Point> pts = new List<Point>();
-                foreach (var point in args.Strokes[0].GetInkPoints())
+                foreach (var point in newStroke.GetInkPoints())
                 {
                     Point pt = point.Position;
                     pts.Add(pt);
@@ -78,7 +84,10 @@ namespace FireflyWindows
                 List<Cube> cubes = new List<Cube>();
                 double left = box.Left;
                 double w = Math.Ceiling(box.Width / cubeSize);
-
+                if (double.IsInfinity(w) || double.IsNaN(w))
+                {
+                    return;
+                }
                 var program = new List<int>();
 
                 for (x = left; x < box.Right; x += cubeSize)
