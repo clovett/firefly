@@ -191,6 +191,7 @@ namespace FireflyWindows
 
         private void OnRefresh(object sender, RoutedEventArgs e)
         {
+            AddMessage("");
             hubs.Refresh();
         }
 
