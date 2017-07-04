@@ -296,10 +296,6 @@ namespace FireflyWindows
                 {
                     int on = (value & 0x1);
                     tubeState[i] = on;
-                    if (on > 0)
-                    {
-                        Debug.WriteLine("Tube {0} is loaded!", i);
-                    }
                     value >>= 1;
                 }
                 value = response.Arg2;
@@ -308,10 +304,6 @@ namespace FireflyWindows
                 {
                     int on = (value & 0x1);
                     tubeState[5 + i] = on;
-                    if (on > 0)
-                    {
-                        Debug.WriteLine("Tube {0} is loaded!", i + 5);
-                    }
                     value >>= 1;
                 }
 

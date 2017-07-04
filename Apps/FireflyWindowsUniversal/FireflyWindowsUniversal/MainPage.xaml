@@ -51,6 +51,7 @@
                 <AppBarButton x:Name="RefreshButton" Icon="Refresh" Click="OnRefresh" Label="Refresh"/>
                 <AppBarButton x:Name="LightsButton" Icon="View" Click="OnToggleLights" HorizontalAlignment="Left" Label="Lights"/>
                 <AppBarButton x:Name="FullscreenButton" Icon="Fullscreen" Click="OnFullscreen" Label="Fullscreen"/>
+                <AppBarButton x:Name="GraphButton" Icon="Shuffle" Click="OnGraph" Label="Draw Program"/>
             </CommandBar.SecondaryCommands>
         </CommandBar>
     </Page.BottomAppBar>

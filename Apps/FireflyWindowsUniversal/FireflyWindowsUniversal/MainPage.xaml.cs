@@ -163,14 +163,14 @@ namespace FireflyWindows
         {
             hubs.Start();
             hubs.Message += OnHubMessage;
-            hubs.PlayComplete += OnPlayComplete;
+            hubs.Program.PlayComplete += OnPlayComplete;
             base.OnNavigatedTo(e);
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
             hubs.Message -= OnHubMessage;
-            hubs.PlayComplete -= OnPlayComplete;
+            hubs.Program.PlayComplete -= OnPlayComplete;
             base.OnNavigatedFrom(e);
         }
 
@@ -199,24 +199,29 @@ namespace FireflyWindows
         {
             PlayButton.Visibility = Visibility.Visible;
             PauseButton.Visibility = Visibility.Collapsed;
-            hubs.Pause();
+            hubs.Program.Pause();
         }
 
         private void OnPlay(object sender, RoutedEventArgs e)
         {
             PlayButton.Visibility = Visibility.Collapsed;
             PauseButton.Visibility = Visibility.Visible;
-            hubs.Play();
+            hubs.Program.Play();
         }
-
 
         private void OnHelp(object sender, RoutedEventArgs e)
         {
             this.Frame.Navigate(typeof(HelpPage));
         }
+
         private void OnSettings(object sender, RoutedEventArgs e)
         {
             this.Frame.Navigate(typeof(SettingsPage));
+        }
+
+        private void OnGraph(object sender, RoutedEventArgs e)
+        {
+            this.Frame.Navigate(typeof(GraphPage));
         }
 
         private void OnArm(object sender, RoutedEventArgs e)
