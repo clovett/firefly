@@ -12,10 +12,11 @@ namespace BleLights.SharedControls
     public class Settings : INotifyPropertyChanged
     {
         static Mutex fileLock = new Mutex();
-        int playSpeed = 3;
+        int playSpeed = 3000;
         string armColor = "red";
         int burnTime = 500; // half a second
         double tubeSize = 60; // for UI only.
+        int batchSize = 1; // launch 1 tube at a time.
 
         static Settings _instance;
 
@@ -99,6 +100,20 @@ namespace BleLights.SharedControls
                 }
             }
         }
+
+        public int BatchSize
+        {
+            get { return batchSize; }
+            set
+            {
+                if (batchSize != value)
+                {
+                    batchSize = value;
+                    OnPropertyChanged("BatchSize");
+                }
+            }
+        }
+        
 
         public static async Task<Settings> LoadAsync()
         {

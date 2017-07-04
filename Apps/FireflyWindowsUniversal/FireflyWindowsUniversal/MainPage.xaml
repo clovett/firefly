@@ -51,7 +51,6 @@
                 <AppBarButton x:Name="RefreshButton" Icon="Refresh" Click="OnRefresh" Label="Refresh"/>
                 <AppBarButton x:Name="LightsButton" Icon="View" Click="OnToggleLights" HorizontalAlignment="Left" Label="Lights"/>
                 <AppBarButton x:Name="FullscreenButton" Icon="Fullscreen" Click="OnFullscreen" Label="Fullscreen"/>
-                <AppBarButton x:Name="KaboomButton" Icon="Emoji" Click="OnKaboom" Label="Kaboom!"/>
             </CommandBar.SecondaryCommands>
         </CommandBar>
     </Page.BottomAppBar>

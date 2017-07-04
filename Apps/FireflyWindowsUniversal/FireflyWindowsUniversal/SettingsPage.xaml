@@ -36,7 +36,7 @@
 
             <StackPanel Orientation="Vertical" Margin="20" Grid.Row="1">
 
-                <TextBox x:Name="PlaySpeed" Header="Play Speed (seconds)" Text="{Binding PlaySpeed, Mode=TwoWay}" FontSize="18" Margin="0,0,0,10"/>
+                <TextBox x:Name="PlaySpeed" Header="Play Speed (milliseconds)" Text="{Binding PlaySpeed, Mode=TwoWay}" FontSize="18" Margin="0,0,0,10"/>
                 <ComboBox x:Name="ArmNamedColor" Header="Arm Named Colors" FontSize="18" Margin="0,0,0,10"
                           SelectionChanged="OnNamedColorSelected" >
                     <ComboBox.ItemTemplate>
@@ -52,6 +52,8 @@
                 <TextBox x:Name="ArmColor" Header="Arm actual color" Text="{Binding ArmColor, Mode=TwoWay}" FontSize="18" Margin="0,0,0,10"/>
 
                 <TextBox x:Name="BurnTime" Header="Burn time (milliseconds)" Text="{Binding BurnTime, Mode=TwoWay}" FontSize="18" Margin="0,0,0,10"/>
+
+                <TextBox x:Name="BatchSize" Header="Batch size" Text="{Binding BatchSize, Mode=TwoWay}" FontSize="18" Margin="0,0,0,10"/>
                 
                 <TextBox x:Name="TubeSize" Header="Tube size" Text="{Binding TubeSize, Mode=TwoWay}" FontSize="18" Margin="0,0,0,10"/>
             </StackPanel>

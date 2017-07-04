@@ -196,24 +196,30 @@ namespace FireflyWindows.ViewModels
         
         private void PlayNext()
         {
-            bool done = false;
+            int batchSize = Settings.Instance.BatchSize;
+            int mask = 1;
+            while (batchSize > 1)
+            {
+                mask <<= 1;
+                mask += 1;
+                batchSize--;
+            }
+            mask <<= playPos;
+            batchSize = Settings.Instance.BatchSize;
+
+            int maxTubes = 0;
             foreach (var hub in this.hubList.ToArray())
             {
                 FireflyHub fh = hub.Hub;
-                if (fh.Tubes == playPos)
-                {
-                    playPos = 0;
-                    // done!
-                    done = true;
-                }
-                else
-                {
-                    int bits = 1 << playPos;
-                    hub.Hub.FireTubes(bits, Settings.Instance.BurnTime);
-                }
+                hub.Hub.FireTubes(mask, Settings.Instance.BurnTime);
+                maxTubes = Math.Max(maxTubes, hub.Hub.Tubes);
             }
-            if (done)
+
+            playPos += batchSize;
+
+            if (playPos >= maxTubes)
             {
+                playPos = -1;
                 if (PlayComplete != null)
                 {
                     PlayComplete(this, EventArgs.Empty);
@@ -221,22 +227,13 @@ namespace FireflyWindows.ViewModels
             }
             else
             {
-                playPos++;
                 if (!paused)
                 {
                     int speed = Settings.Instance.PlaySpeed;
-                    delayedActions.StartDelayedAction("PlayNext", () => { PlayNext(); }, TimeSpan.FromSeconds(speed));
+                    delayedActions.StartDelayedAction("PlayNext", () => { PlayNext(); }, TimeSpan.FromMilliseconds(speed));
                 }
             }
         }
 
-        internal void Kaboom()
-        {
-            System.Threading.Tasks.Parallel.ForEach(this.hubList.ToArray(),
-                (hub) =>
-                {
-                    hub.Hub.Kaboom();
-                });
-        }
     }
 }

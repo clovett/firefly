@@ -276,9 +276,5 @@ namespace FireflyWindows
             }
         }
 
-        private void OnKaboom(object sender, RoutedEventArgs e)
-        {
-            hubs.Kaboom();
-        }
     }
 }

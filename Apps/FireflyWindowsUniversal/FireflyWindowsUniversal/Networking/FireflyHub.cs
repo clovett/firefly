@@ -253,11 +253,6 @@ namespace FireflyWindows
             Debug.WriteLine("{0}: Message processing thread terminating", this.RemoteAddress);
         }
 
-        internal void Kaboom()
-        {
-            FireTubes(0xffff, Settings.Instance.BurnTime);
-        }
-
         private void HandleResponse(FireflyMessage response)
         {
             switch (response.SentCommand.FireCommand)
