@@ -283,5 +283,9 @@ namespace FireflyWindows
             }
         }
 
+        private void OnLoadTest(object sender, RoutedEventArgs e)
+        {
+            hubs.AddTestHubs();
+        }
     }
 }

@@ -27,8 +27,9 @@ namespace FireflyWindows
             this.InitializeComponent();
 
             double tubeSize = Settings.Instance.TubeSize;
-            this.Width = (tubeSize * 5) + 40;
-            this.Height = (tubeSize * 2) + 30;
+            this.Width = (tubeSize * 5) + 20 + (2* tubeSize / 3);
+            this.Height = (tubeSize * 2) + 24 + (2 * tubeSize / 10);
+            TubeGrid.Margin = new Thickness(tubeSize / 3, tubeSize / 10, tubeSize / 3, tubeSize / 10);
         }
 
 

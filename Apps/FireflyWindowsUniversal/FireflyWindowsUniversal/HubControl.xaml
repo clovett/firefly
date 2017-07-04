@@ -29,6 +29,12 @@
                             Background="{Binding Path=Loaded, Converter={StaticResource TrueBackgroundConverter}, ConverterParameter=Red}"/>
                 </DataTemplate>
             </GridView.ItemTemplate>
+            <GridView.ItemContainerStyle>
+                <Style TargetType="GridViewItem">
+                    <Setter Property="MinWidth" Value="0" />
+                    <Setter Property="MinHeight" Value="0" />
+                </Style>
+            </GridView.ItemContainerStyle>
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsWrapGrid Orientation="Horizontal" />

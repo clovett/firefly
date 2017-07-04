@@ -20,18 +20,20 @@
             <Image x:Name="BackgroundImage" Grid.RowSpan="3" Source="Assets/fireworks.png" Opacity="0.5"/>
         </Canvas>
 
-        <GridView x:Name="HubGrid" >
-            <GridView.ItemTemplate>
-                <DataTemplate>
-                    <local:HubControl />
-                </DataTemplate>
-            </GridView.ItemTemplate>
-            <GridView.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <ItemsWrapGrid Orientation="Horizontal"/>
-                </ItemsPanelTemplate>
-            </GridView.ItemsPanel>
-        </GridView>
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled" VerticalScrollMode="Enabled">
+            <GridView x:Name="HubGrid" Background="Transparent">
+                <GridView.ItemTemplate>
+                    <DataTemplate>
+                        <local:HubControl />
+                    </DataTemplate>
+                </GridView.ItemTemplate>
+                <GridView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ItemsWrapGrid Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </GridView.ItemsPanel>
+            </GridView>
+        </ScrollViewer>
 
         <Border Grid.Row="2">
             <TextBlock x:Name="Messages" Foreground="Maroon" Text="" Margin="10" TextWrapping="NoWrap"/>
@@ -52,6 +54,7 @@
                 <AppBarButton x:Name="LightsButton" Icon="View" Click="OnToggleLights" HorizontalAlignment="Left" Label="Lights"/>
                 <AppBarButton x:Name="FullscreenButton" Icon="Fullscreen" Click="OnFullscreen" Label="Fullscreen"/>
                 <AppBarButton x:Name="GraphButton" Icon="Shuffle" Click="OnGraph" Label="Draw Program"/>
+                <AppBarButton x:Name="TestButton" Icon="SlideShow" Click="OnLoadTest" Label="Load Test"/>
             </CommandBar.SecondaryCommands>
         </CommandBar>
     </Page.BottomAppBar>
