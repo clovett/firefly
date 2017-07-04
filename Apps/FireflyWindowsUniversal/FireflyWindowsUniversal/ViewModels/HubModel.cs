@@ -49,8 +49,7 @@ namespace FireflyWindows.ViewModels
                 for (int i = 0; i < tubes.Count; i++)
                 {
                     TubeModel m = tubes[i];
-                    // bugbug: the sensing is not reliable yet, so turn off the UI
-                    //m.Loaded = hub.GetTubeState(i) > 0;
+                    m.Loaded = hub.GetTubeState(i) > 0;
                 }
             });
         }

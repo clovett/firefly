@@ -34,7 +34,12 @@
                            VerticalAlignment="Center"/>
             </Grid>
             <Canvas x:Name="Backdrop"></Canvas>
-            <InkCanvas x:Name="GraphCanvas" Grid.Row="1"/>
+            <InkCanvas x:Name="GraphCanvasBehind" Grid.Row="1"/>
+            <!-- 
+            The InvCanvas is retarded and doesn't let us programatically remove a single stroke
+            So we have to toggle between two canvases so we can Clear the one below.
+            -->
+            <InkCanvas x:Name="GraphCanvas" Grid.Row="1" />
         </Grid>
     </Grid>
 </Page>

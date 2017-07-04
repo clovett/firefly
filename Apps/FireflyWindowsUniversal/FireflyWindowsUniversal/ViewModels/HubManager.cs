@@ -86,7 +86,7 @@ namespace FireflyWindows.ViewModels
         {
             while (hubList.Count < 10)
             {
-                HubModel test = new HubModel(null);
+                HubModel test = new HubModel(new FireflyHub() { Tubes = 10 });
                 test.AddTestTubes();
                 hubList.Add(test);
             }

@@ -1,4 +1,5 @@
-﻿using FireflyWindows.ViewModels;
+﻿using BleLights.SharedControls;
+using FireflyWindows.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -27,6 +28,8 @@ namespace FireflyWindows
     /// </summary>
     public sealed partial class GraphPage : Page
     {
+        DelayedActions delayedActions = new DelayedActions();
+
         public GraphPage()
         {
             this.InitializeComponent();
@@ -52,7 +55,15 @@ namespace FireflyWindows
             if (args.Strokes.Count > 0)
             {
                 HubManager hubs = ((App)App.Current).Hubs;
-                double goal = 100; // shots
+                double goal = 0;
+                foreach (var hub in hubs.Hubs)
+                {
+                    goal += hub.Tubes.Count;
+                }
+                if (goal == 0)
+                {
+                    return;
+                }
 
                 Backdrop.Children.Clear();
                 InkStroke newStroke = args.Strokes[0];
@@ -157,6 +168,7 @@ namespace FireflyWindows
                 {
                     return (int)(b.Score - a.Score);
                 }));
+
                 while (count > goal && cubes.Count > 0)
                 {
                     // remove the cubes that are sitting the furthest above the line, but never take the bottom row.
@@ -169,6 +181,28 @@ namespace FireflyWindows
 
                 hubs.SetProgram(program);
                 Debug.WriteLine("Reach target {0} cubes", count);
+
+                delayedActions.StartDelayedAction("PromoteStrokes", OnPromoteStrokes, TimeSpan.FromMilliseconds(50));
+            }
+        }
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            delayedActions.CancelDelayedAction("PromoteStrokes");
+            base.OnNavigatedFrom(e);
+        }
+
+        private async void OnPromoteStrokes()
+        {
+            using (var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream())
+            {
+                await GraphCanvas.InkPresenter.StrokeContainer.SaveAsync(stream);
+                using (var inputStream = stream.GetInputStreamAt(0))
+                {
+                    GraphCanvasBehind.InkPresenter.StrokeContainer.Clear();
+                    await GraphCanvasBehind.InkPresenter.StrokeContainer.LoadAsync(inputStream);
+                }
+                GraphCanvas.InkPresenter.StrokeContainer.Clear();
             }
         }
 

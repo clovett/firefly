@@ -48,16 +48,18 @@ namespace FireflyWindows
             }
             else if (args.VirtualKey == Windows.System.VirtualKey.T)
             {
-                bool isShift = (CoreWindow.GetForCurrentThread().GetKeyState(VirtualKey.LeftShift) == CoreVirtualKeyStates.Down ||
-                                CoreWindow.GetForCurrentThread().GetKeyState(VirtualKey.RightShift) == CoreVirtualKeyStates.Down);
-                bool isCtrl = (CoreWindow.GetForCurrentThread().GetKeyState(VirtualKey.LeftControl) == CoreVirtualKeyStates.Down ||
-                                CoreWindow.GetForCurrentThread().GetKeyState(VirtualKey.RightControl) == CoreVirtualKeyStates.Down);
-
+                bool isShift = IsKeyDown(VirtualKey.LeftShift) || IsKeyDown(VirtualKey.RightShift);
+                bool isCtrl = IsKeyDown(VirtualKey.LeftControl) || IsKeyDown(VirtualKey.RightControl);
                 if (isShift && isCtrl)
                 {
                     hubs.AddTestHubs();
                 }
             }
+        }
+
+        bool IsKeyDown(VirtualKey key)
+        {
+            return (CoreWindow.GetForCurrentThread().GetKeyState(key) & CoreVirtualKeyStates.Down) == CoreVirtualKeyStates.Down;
         }
 
         private void MainPage_SizeChanged(object sender, SizeChangedEventArgs e)

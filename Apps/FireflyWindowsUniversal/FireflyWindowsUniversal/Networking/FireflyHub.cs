@@ -26,6 +26,7 @@ namespace FireflyWindows
         bool armed;
         bool connected;
         bool connecting;
+        bool enableSensing = false; // not working yet
         DateTime connectTime;
         private Queue<FireflyMessage> queue = new Queue<FireflyMessage>();
         ManualResetEvent available = new ManualResetEvent(false);
@@ -146,6 +147,14 @@ namespace FireflyWindows
                 return tubeState[tube];
             }
             return 0;
+        }
+
+        public void SetTubeState(int tube, int state)
+        {
+            if (tubeState != null && tube >= 0 && tube < tubeState.Length)
+            {
+                tubeState[tube] = state;
+            }
         }
 
         public DateTime LastHeartBeat { get; private set; }
@@ -288,14 +297,15 @@ namespace FireflyWindows
                 this.connected = true;
                 OnConnectionChanged();
             }
-            if (tubeState != null)
+
+            if (tubeState != null && enableSensing)
             {
                 // get sense info
                 int value = response.Arg1;
                 for (int i = 0; i < 5; i++)
                 {
                     int on = (value & 0x1);
-                    tubeState[i] = on;
+                    SetTubeState(i, on);
                     value >>= 1;
                 }
                 value = response.Arg2;
@@ -303,14 +313,18 @@ namespace FireflyWindows
                 for (int i = 0; i < 5; i++)
                 {
                     int on = (value & 0x1);
-                    tubeState[5 + i] = on;
+                    SetTubeState(5 + i, on);
                     value >>= 1;
                 }
+                OnStateChanged();
+            }
+        }
 
-                if (StateChanged != null)
-                {
-                    StateChanged(this, EventArgs.Empty);
-                }
+        private void OnStateChanged()
+        {
+            if (StateChanged != null)
+            {
+                StateChanged(this, EventArgs.Empty);
             }
         }
 
@@ -376,12 +390,39 @@ namespace FireflyWindows
 
         internal void Arm(bool arm)
         {
+            if (arm && !enableSensing)
+            {
+                // we can assume if we are arming then right now we are also fully loaded.
+                // (we do this because sensing isn't working yet)
+                for (int i = 0; i < tubeState.Length; i++)
+                {
+                    tubeState[i] = 1;
+                }
+
+                OnStateChanged();
+            }
             armed = arm;
             SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Arm, Arg1 = arm ? (byte)1 : (byte)0 });
         }
 
-        internal void FireTubes(int bits, int burnTimeMs)
+        internal void FireTubes(List<int> tubes, int burnTimeMs)
         {
+            // pack the bits
+            int bits = 0;
+            foreach (var i in tubes)
+            {
+                tubeState[i] = 0;
+                bits |= (1 << i);
+            }
+            OnStateChanged();
+            SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Fire, Arg1 = bits, Arg2 = burnTimeMs });
+        }
+
+        internal void FireTube(int tube, int burnTimeMs)
+        {
+            tubeState[tube] = 0;
+            int bits = 1 << tube;
+            OnStateChanged();
             SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Fire, Arg1 = bits, Arg2 = burnTimeMs });
         }
 

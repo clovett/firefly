@@ -24,7 +24,15 @@ namespace FireflyWindows.ViewModels
         ///  step of the Play.
         /// </summary>
         public List<int> Numbers { get; set; }
-        
+
+        public bool HasProgram
+        {
+            get
+            {
+                return Numbers != null && Numbers.Count > 0;
+            }
+        }
+
         int playPos;
         bool paused;
 
@@ -35,14 +43,21 @@ namespace FireflyWindows.ViewModels
 
         internal void Play()
         {
-            delayedActions.StartDelayedAction("PlayNext", () => { PlayNext(); }, TimeSpan.FromSeconds(0));
+            if (HasProgram)
+            {
+                delayedActions.StartDelayedAction("PlayProgram", () => { PlayProgram(); }, TimeSpan.FromMilliseconds(0));
+            }
+            else
+            {
+                delayedActions.StartDelayedAction("PlayNext", () => { PlaySequence(); }, TimeSpan.FromSeconds(0));
+            }
         }
 
         List<int> leftBank = null;
         List<int> rightBank = null;
 
 
-        private void PlayNext()
+        private void PlaySequence()
         {
             // batch size tells us how many tubes we want to fire from each hub at a time.
             // If it is greater than 1 then we also want to balance the number across the
@@ -80,14 +95,14 @@ namespace FireflyWindows.ViewModels
                 rightCount = temp;
             }
 
-            int mask = 0;
+            List<int> tubesToFire = new List<int>();
             for (int i = 0; i < leftCount; i++)
             {
                 if (leftBank.Count > 0)
                 {
                     int tube = leftBank[0];
                     leftBank.RemoveAt(0);
-                    mask |= (1 << tube);
+                    tubesToFire.Add(tube);
                 }
             }
             for (int i = 0; i < rightCount; i++)
@@ -96,14 +111,14 @@ namespace FireflyWindows.ViewModels
                 {
                     int tube = rightBank[0];
                     rightBank.RemoveAt(0);
-                    mask |= (1 << tube);
+                    tubesToFire.Add(tube);
                 }
             }
 
             foreach (var hub in hubs.Hubs.ToArray())
             {
                 FireflyHub fh = hub.Hub;
-                hub.Hub.FireTubes(mask, Settings.Instance.BurnTime);
+                hub.Hub.FireTubes(tubesToFire, Settings.Instance.BurnTime);
             }
 
             playPos += batchSize;
@@ -123,7 +138,13 @@ namespace FireflyWindows.ViewModels
             if (!paused)
             {
                 int speed = Settings.Instance.PlaySpeed;
-                delayedActions.StartDelayedAction("PlayNext", () => { PlayNext(); }, TimeSpan.FromMilliseconds(speed));
+                if (HasProgram) {
+                    delayedActions.StartDelayedAction("PlayProgram", () => { PlayProgram(); }, TimeSpan.FromMilliseconds(speed));
+                }
+                else
+                {
+                    delayedActions.StartDelayedAction("PlaySequence", () => { PlaySequence(); }, TimeSpan.FromMilliseconds(speed));
+                }
             }
         }
 
@@ -140,7 +161,7 @@ namespace FireflyWindows.ViewModels
         {
             playPos = -1;
         }
-
+ 
         public void PlayProgram()
         {
             List<int> program = this.Numbers;
@@ -152,7 +173,46 @@ namespace FireflyWindows.ViewModels
             int n = program[playPos];
 
             // fire this many tubes by selecting them in round robin style from each hub.
-            // this means we need to keep track of firing state of each tube.
+            // this uses the firing state of each tube to keep track of which tubes are still loaded.
+
+            HubManager hubmgr = ((App)App.Current).Hubs;
+            var hubs = hubmgr.Hubs.ToArray();
+            List<Tuple<HubModel,List<int>>> firingPattern = new List<Tuple<HubModel,List<int>>>();
+            foreach (var h in hubs)
+            {
+                firingPattern.Add(new Tuple<HubModel, List<int>>(h, new List<int>()));
+            }
+
+            bool added = true;
+            while (n > 0 && added)
+            {
+                added = false;
+                for (int h = 0; h < hubs.Length && n > 0; h++)
+                {
+                    List<int> tubes = firingPattern[h].Item2;
+                    var hub = hubs[h];
+                    for (int i = 0; i < hub.Tubes.Count; i++)
+                    {
+                        if (!tubes.Contains(i) && hub.Hub.GetTubeState(i) == 1)
+                        {
+                            tubes.Add(i);
+                            n--;
+                            added = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            int burnTime = Settings.Instance.BurnTime;
+
+            // send firing patterns
+            System.Threading.Tasks.Parallel.ForEach(firingPattern, (tuple) => {
+                HubModel model = tuple.Item1;
+                List<int> tubes = tuple.Item2;
+                model.Hub.FireTubes(tubes, burnTime);
+            });
+
 
             playPos++;
             if (playPos >= program.Count)
