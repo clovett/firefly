@@ -119,6 +119,7 @@
     <Compile Include="SettingsPage.xaml.cs">
       <DependentUpon>SettingsPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Utilities\CircularBorderConverter.cs" />
     <Compile Include="Utilities\TrueBackgroundConverter.cs" />
     <Compile Include="Utilities\ColorNames.cs" />
     <Compile Include="Utilities\FalseBackgroundConverter.cs" />

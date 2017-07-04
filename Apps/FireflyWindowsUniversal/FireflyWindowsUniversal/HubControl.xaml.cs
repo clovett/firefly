@@ -25,7 +25,12 @@ namespace FireflyWindows
         public HubControl()
         {
             this.InitializeComponent();
+
+            double tubeSize = Settings.Instance.TubeSize;
+            this.Width = (tubeSize * 5) + 40;
+            this.Height = (tubeSize * 2) + 30;
         }
+
 
         private void OnTubeSelected(object sender, RoutedEventArgs e)
         {
@@ -33,12 +38,13 @@ namespace FireflyWindows
 
             HubModel hub = (HubModel)this.DataContext;
             TubeModel tube = (TubeModel)tubeButton.DataContext;
-            if (hub != null && tube != null)
+            if (hub != null && tube != null && hub.Hub != null)
             {
                 int i = hub.Tubes.IndexOf(tube);
                 if (i >= 0)
                 {
-                    hub.Hub.FireTube(i, Settings.Instance.BurnTime);
+                    int bits = 1 << i;
+                    hub.Hub.FireTubes(bits, Settings.Instance.BurnTime);
                 }
             }
         }

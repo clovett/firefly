@@ -1,26 +1,18 @@
 ﻿using BleLights.SharedControls;
-using FireflyWindows.Utilities;
 using FireflyWindows.ViewModels;
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
-using Windows.Foundation.Collections;
+using Windows.System;
 using Windows.UI;
+using Windows.UI.Core;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Documents;
-using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Navigation;
+using Windows.UI.Xaml.Input;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -44,6 +36,28 @@ namespace FireflyWindows
             CheckNetworkStatus();
             SetArmIcon();
             this.SizeChanged += MainPage_SizeChanged;
+
+            Window.Current.CoreWindow.KeyDown += OnCoreWindowKeyDown;
+        }
+        
+        private void OnCoreWindowKeyDown(Windows.UI.Core.CoreWindow sender, Windows.UI.Core.KeyEventArgs args)
+        {
+            if (args.VirtualKey == Windows.System.VirtualKey.F5)
+            {
+                hubs.Refresh();
+            }
+            else if (args.VirtualKey == Windows.System.VirtualKey.T)
+            {
+                bool isShift = (CoreWindow.GetForCurrentThread().GetKeyState(VirtualKey.LeftShift) == CoreVirtualKeyStates.Down ||
+                                CoreWindow.GetForCurrentThread().GetKeyState(VirtualKey.RightShift) == CoreVirtualKeyStates.Down);
+                bool isCtrl = (CoreWindow.GetForCurrentThread().GetKeyState(VirtualKey.LeftControl) == CoreVirtualKeyStates.Down ||
+                                CoreWindow.GetForCurrentThread().GetKeyState(VirtualKey.RightControl) == CoreVirtualKeyStates.Down);
+
+                if (isShift && isCtrl)
+                {
+                    hubs.AddTestHubs();
+                }
+            }
         }
 
         private void MainPage_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -51,7 +65,9 @@ namespace FireflyWindows
             pageSize = e.NewSize;
             ResizeImage(pageSize);
 
-            if (pageSize.Width > 800)
+            double pageWidth = pageSize.Width;
+
+            if (pageWidth > 800)
             {
                 if (!wideMode)
                 {
@@ -78,6 +94,17 @@ namespace FireflyWindows
                     PageCommandBar.SecondaryCommands.Add(FullscreenButton);
                 }
             }
+
+            // todo: calcualte ideal tube size to get 100 tubes to fill the screen.
+            // So N Hubs across the page results in page width, 5 tubes across per hub:
+            //      5 * N = pageWidth
+            //      TubeSize = pageWidth / 5 * N
+            // Then whatever N becomes, tells us how high this will be:
+            //      Rows = 100 / N * 10
+            //      Rows = Math.Ceil(10 / N)
+            //      Height = Rows * 2 * TubeSize + yMargin  // Hubs are 2 tubes tall * a margin 
+            // Now optimize, if we have height remaining increase tube size...
+
         }
 
         bool wideMode;
@@ -248,5 +275,9 @@ namespace FireflyWindows
             }
         }
 
+        private void OnKaboom(object sender, RoutedEventArgs e)
+        {
+            hubs.Kaboom();
+        }
     }
 }

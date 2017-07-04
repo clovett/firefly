@@ -17,18 +17,30 @@ namespace FireflyWindows.ViewModels
         bool connected;
         string name;
         string error;
-        bool responding;
         ObservableCollection<TubeModel> tubes = new ObservableCollection<TubeModel>();
 
         public HubModel(FireflyHub e)
         {
             this.hub = e;
-            this.Connected = this.hub.Connected;
-            e.MessageReceived += OnMessageReceived;
-            e.Error += OnHubError;
-            e.ConnectionChanged += OnConnectionChanged;
-            e.StateChanged += OnStateChanged;
+            if (e != null)
+            {
+                this.Connected = this.hub.Connected;
+                e.MessageReceived += OnMessageReceived;
+                e.Error += OnHubError;
+                e.ConnectionChanged += OnConnectionChanged;
+                e.StateChanged += OnStateChanged;
+            }
         }
+
+        public void UpdateTubeSize()
+        {
+            double newSize = Settings.Instance.TubeSize;
+            foreach (var tube in tubes.ToArray())
+            {
+                tube.TubeSize = newSize;
+            }
+        }
+
 
         private void OnStateChanged(object sender, EventArgs e)
         {
@@ -84,6 +96,13 @@ namespace FireflyWindows.ViewModels
             }
         }
 
+        internal void AddTestTubes()
+        {
+            while (tubes.Count < 10)
+            {
+                tubes.Add(new TubeModel(this) { TubeSize = Settings.Instance.TubeSize });
+            }
+        }
 
         public string ErrorMessage
         {
@@ -135,7 +154,7 @@ namespace FireflyWindows.ViewModels
         {
             while (tubes.Count < hub.Tubes)
             {
-                tubes.Add(new ViewModels.TubeModel(this));
+                tubes.Add(new TubeModel(this) { TubeSize = Settings.Instance.TubeSize });
             }
             while (tubes.Count > hub.Tubes)
             {
@@ -145,12 +164,14 @@ namespace FireflyWindows.ViewModels
             this.Name = hub.RemoteAddress;
             this.ErrorMessage = "";
         }
+        
     }
 
     public class TubeModel : INotifyPropertyChanged
     {
         HubModel owner;
         bool loaded;
+        double tubeSize = 60;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -174,6 +195,17 @@ namespace FireflyWindows.ViewModels
                     loaded = value;
                     OnPropertyChanged("Loaded");
 
+                }
+            }
+        }
+
+        public double TubeSize
+        {
+            get { return this.tubeSize;  }
+            set {  if (this.tubeSize != value)
+                {
+                    this.tubeSize = value;
+                    OnPropertyChanged("TubeSize");
                 }
             }
         }

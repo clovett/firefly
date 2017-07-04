@@ -15,7 +15,7 @@ public:
 
     void arm(bool on);
 
-    void fire(int tube, int burn_time);
+    void fire(uint tube, int burn_time);
 
     int sense(int tube);
 

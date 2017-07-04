@@ -116,12 +116,18 @@ namespace FireflyWindows
 
         private void OnSettingsChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            saveActions.StartDelayedAction("SaveSettings", async () =>
-            {
-                Debug.WriteLine("saving settings");
-                await this.settings.SaveAsync();
 
-            }, TimeSpan.FromSeconds(1));
+            if (e.PropertyName == "TubeSize")
+            {
+                hubs.UpdateTubeSize();
+            }
+
+            saveActions.StartDelayedAction("SaveSettings", async () =>
+                {
+                    Debug.WriteLine("saving settings");
+                    await this.settings.SaveAsync();
+
+                }, TimeSpan.FromSeconds(1));
         }
 
         /// <summary>

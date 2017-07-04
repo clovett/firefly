@@ -122,14 +122,32 @@ void Tubes::arm(bool on)
     gpio_set_level(EN_RELAY, on ? 1 : 0);
 }
 
-void Tubes::fire(int tube, int burnTime)
+void Tubes::fire(uint bits, int burnTime)
 {
-    if (tube >= 0 && tube < NUM_TUBES) {
-      ESP_LOGI(TAG, "firing tube %d for %d ms", tube, burnTime);
-      int io = tube_list[tube];
-      gpio_set_level((gpio_num_t)io, 1);   
-      vTaskDelay(burnTime / portTICK_PERIOD_MS);
-      gpio_set_level((gpio_num_t)io, 0);
+    // bit mask packs the tubes we want to fire.
+    ESP_LOGI(TAG, "firing tubes %x for %d ms", bits, burnTime);
+    int shift = bits;
+    int tube = 0;
+    for(int i = 0; i < NUM_TUBES; i++) {
+        int bit = (shift & 0x1);
+        if (bit) {
+            int io = tube_list[tube];
+            gpio_set_level((gpio_num_t)io, 1);   
+        }
+        shift >>= 1;
+        tube++;
+    }
+    vTaskDelay(burnTime / portTICK_PERIOD_MS);
+    shift = bits;
+    tube = 0;
+    for(int i = 0; i < NUM_TUBES; i++) {
+        int bit = (shift & 0x1);
+        if (bit) {
+            int io = tube_list[tube];
+            gpio_set_level((gpio_num_t)io, 0);
+        }
+        shift >>= 1;
+        tube++;
     }
 }
 

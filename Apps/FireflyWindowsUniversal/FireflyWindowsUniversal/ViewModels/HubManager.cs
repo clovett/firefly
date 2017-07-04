@@ -76,6 +76,16 @@ namespace FireflyWindows.ViewModels
             });
         }
 
+        internal void AddTestHubs()
+        {
+            while (hubList.Count < 10)
+            {
+                HubModel test = new HubModel(null);
+                test.AddTestTubes();
+                hubList.Add(test);
+            }
+        }
+
         void OnMessage(string text)
         {
             if (Message != null)
@@ -86,7 +96,7 @@ namespace FireflyWindows.ViewModels
         public void SetColor(byte a, byte r, byte g, byte b)
         {
             lightsOn = (r > 0 || g > 0 || b > 0);
-            System.Threading.Tasks.Parallel.ForEach(this.hubList,
+            System.Threading.Tasks.Parallel.ForEach(this.hubList.ToArray(),
                 (hub) =>
                 {
                     hub.Hub.SetColor(a, r, g, b);
@@ -97,7 +107,7 @@ namespace FireflyWindows.ViewModels
         {
             Color c = ColorNames.ParseColor(Settings.Instance.ArmColor);
             armed = !armed;
-            System.Threading.Tasks.Parallel.ForEach(this.hubList,
+            System.Threading.Tasks.Parallel.ForEach(this.hubList.ToArray(),
                 (hub) =>
                 {
                     hub.Hub.Arm(armed);
@@ -146,6 +156,14 @@ namespace FireflyWindows.ViewModels
             }
         }
 
+        internal void UpdateTubeSize()
+        {
+            foreach (var hub in this.hubList.ToArray())
+            {
+                hub.UpdateTubeSize();
+            }
+        }
+
         internal void Refresh()
         {
             playPos = 0;
@@ -175,11 +193,11 @@ namespace FireflyWindows.ViewModels
             }
             delayedActions.StartDelayedAction("PlayNext", () => { PlayNext(); }, TimeSpan.FromSeconds(0));
         }
-
+        
         private void PlayNext()
         {
             bool done = false;
-            foreach (var hub in this.hubList)
+            foreach (var hub in this.hubList.ToArray())
             {
                 FireflyHub fh = hub.Hub;
                 if (fh.Tubes == playPos)
@@ -190,7 +208,8 @@ namespace FireflyWindows.ViewModels
                 }
                 else
                 {
-                    hub.Hub.FireTube(playPos, Settings.Instance.BurnTime);
+                    int bits = 1 << playPos;
+                    hub.Hub.FireTubes(bits, Settings.Instance.BurnTime);
                 }
             }
             if (done)
@@ -209,6 +228,15 @@ namespace FireflyWindows.ViewModels
                     delayedActions.StartDelayedAction("PlayNext", () => { PlayNext(); }, TimeSpan.FromSeconds(speed));
                 }
             }
+        }
+
+        internal void Kaboom()
+        {
+            System.Threading.Tasks.Parallel.ForEach(this.hubList.ToArray(),
+                (hub) =>
+                {
+                    hub.Hub.Kaboom();
+                });
         }
     }
 }

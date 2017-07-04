@@ -81,16 +81,9 @@ void handle_command(FireMessage& msg)
         break;
         
     case Fire:
-        // fire !
-        if (msg.arg1 < NUM_TUBES) {
-          ESP_LOGI(TAG, "firing tube %d", msg.arg1);
-          msg.command = Ack;
-          tubes.fire(msg.arg1, msg.arg2);
-        }
-        else {
-          ESP_LOGI(TAG, "tube index out of range %d", msg.arg1);
-          msg.command = Nack;
-        }
+        // fire tubes listed in the bit mask.
+        msg.command = Ack;
+        tubes.fire((uint)msg.arg1, msg.arg2);
         break;
     case Color:
         initialize_leds();

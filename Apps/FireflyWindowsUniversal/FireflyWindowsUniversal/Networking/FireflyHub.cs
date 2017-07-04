@@ -1,4 +1,5 @@
-﻿using FireflyWindows.Networking;
+﻿using BleLights.SharedControls;
+using FireflyWindows.Networking;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -30,7 +31,7 @@ namespace FireflyWindows
         ManualResetEvent available = new ManualResetEvent(false);
         ManualResetEvent queueEmpty = new ManualResetEvent(false);
         Mutex queueLock = new Mutex();
-        const int HeartbeatDelay = 2000; // 1 second
+        const int HeartbeatDelay = 2000; // 2 seconds
 
         public event EventHandler<string> Error;
         public event EventHandler ConnectionChanged;
@@ -252,6 +253,11 @@ namespace FireflyWindows
             Debug.WriteLine("{0}: Message processing thread terminating", this.RemoteAddress);
         }
 
+        internal void Kaboom()
+        {
+            FireTubes(0xffff, Settings.Instance.BurnTime);
+        }
+
         private void HandleResponse(FireflyMessage response)
         {
             switch (response.SentCommand.FireCommand)
@@ -355,7 +361,7 @@ namespace FireflyWindows
             while (running && !closing)
             {
                 SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Heartbeat });
-                await Task.Delay(1000);
+                await Task.Delay(HeartbeatDelay);
                 if (queue.Count > 10)
                 {
                     this.connected = false;
@@ -387,9 +393,9 @@ namespace FireflyWindows
             SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Arm, Arg1 = arm ? (byte)1 : (byte)0 });
         }
 
-        internal void FireTube(int i, int burnTimeMs)
+        internal void FireTubes(int bits, int burnTimeMs)
         {
-            SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Fire, Arg1 = i, Arg2 = burnTimeMs });
+            SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Fire, Arg1 = bits, Arg2 = burnTimeMs });
         }
 
         internal void SetColor(byte a, byte r, byte g, byte b)

@@ -15,6 +15,7 @@ namespace BleLights.SharedControls
         int playSpeed = 3;
         string armColor = "red";
         int burnTime = 500; // half a second
+        double tubeSize = 60; // for UI only.
 
         static Settings _instance;
 
@@ -86,6 +87,18 @@ namespace BleLights.SharedControls
             }
         }
 
+        public double TubeSize
+        {
+            get { return tubeSize; }
+            set
+            {
+                if (tubeSize != value)
+                {
+                    tubeSize = value;
+                    OnPropertyChanged("TubeSize");
+                }
+            }
+        }
 
         public static async Task<Settings> LoadAsync()
         {

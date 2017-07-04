@@ -52,6 +52,8 @@
                 <TextBox x:Name="ArmColor" Header="Arm actual color" Text="{Binding ArmColor, Mode=TwoWay}" FontSize="18" Margin="0,0,0,10"/>
 
                 <TextBox x:Name="BurnTime" Header="Burn time (milliseconds)" Text="{Binding BurnTime, Mode=TwoWay}" FontSize="18" Margin="0,0,0,10"/>
+                
+                <TextBox x:Name="TubeSize" Header="Tube size" Text="{Binding TubeSize, Mode=TwoWay}" FontSize="18" Margin="0,0,0,10"/>
             </StackPanel>
 
 
