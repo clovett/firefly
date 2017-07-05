@@ -333,6 +333,20 @@ namespace FireflyWindows
             switch (response.FireCommand)
             {
                 case FireflyCommand.Ack:
+                    {
+                        // record the state change!
+                        int bits = response.Arg1;
+                        for (int i = 0; i < Tubes; i++)
+                        {
+                            bool on = (bits & 0x1) == 0x1;
+                            if (on)
+                            {
+                                tubeState[i] = 0;
+                            }
+                            bits >>= 1;
+                        }
+                    }
+                    OnStateChanged();
                     // great!
                     break;
                 default:
@@ -420,9 +434,7 @@ namespace FireflyWindows
 
         internal void FireTube(int tube, int burnTimeMs)
         {
-            tubeState[tube] = 0;
             int bits = 1 << tube;
-            OnStateChanged();
             SendMessage(new FireflyMessage() { FireCommand = FireflyCommand.Fire, Arg1 = bits, Arg2 = burnTimeMs });
         }
 

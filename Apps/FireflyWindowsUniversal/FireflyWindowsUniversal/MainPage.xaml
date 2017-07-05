@@ -47,11 +47,11 @@
                 <AppBarButton x:Name="PlayButton" Icon="Play" Click="OnPlay" Label="Play"/>
                 <AppBarButton x:Name="PauseButton" Icon="Pause" Click="OnPause" Visibility="Collapsed"/>
                 <AppBarButton x:Name="SettingsButton" Icon="Setting" Click="OnSettings" Label="Settings"/>
-                <AppBarButton x:Name="HelpButton" Icon="Help" Click="OnHelp" Label="Help"/>
+                <AppBarButton x:Name="LightsButton" Icon="View" Click="OnToggleLights" HorizontalAlignment="Left" Label="Lights"/>
             </CommandBar.PrimaryCommands>
             <CommandBar.SecondaryCommands>
+                <AppBarButton x:Name="HelpButton" Icon="Help" Click="OnHelp" Label="Help"/>
                 <AppBarButton x:Name="RefreshButton" Icon="Refresh" Click="OnRefresh" Label="Refresh"/>
-                <AppBarButton x:Name="LightsButton" Icon="View" Click="OnToggleLights" HorizontalAlignment="Left" Label="Lights"/>
                 <AppBarButton x:Name="FullscreenButton" Icon="Fullscreen" Click="OnFullscreen" Label="Fullscreen"/>
                 <AppBarButton x:Name="GraphButton" Icon="Shuffle" Click="OnGraph" Label="Draw Program"/>
                 <AppBarButton x:Name="TestButton" Icon="SlideShow" Click="OnLoadTest" Label="Load Test"/>

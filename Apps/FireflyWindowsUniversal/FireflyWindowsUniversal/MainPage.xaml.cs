@@ -76,8 +76,8 @@ namespace FireflyWindows
                     wideMode = true;
                     PageCommandBar.SecondaryCommands.Remove(RefreshButton);
                     PageCommandBar.PrimaryCommands.Add(RefreshButton);
-                    PageCommandBar.SecondaryCommands.Remove(LightsButton);
-                    PageCommandBar.PrimaryCommands.Add(LightsButton);
+                    PageCommandBar.SecondaryCommands.Remove(HelpButton);
+                    PageCommandBar.PrimaryCommands.Add(HelpButton);
                     PageCommandBar.SecondaryCommands.Remove(FullscreenButton);
                     PageCommandBar.PrimaryCommands.Add(FullscreenButton);
                 }
@@ -90,8 +90,8 @@ namespace FireflyWindows
                     wideMode = false;
                     PageCommandBar.PrimaryCommands.Remove(RefreshButton);
                     PageCommandBar.SecondaryCommands.Add(RefreshButton);
-                    PageCommandBar.PrimaryCommands.Remove(LightsButton);
-                    PageCommandBar.SecondaryCommands.Add(LightsButton);
+                    PageCommandBar.PrimaryCommands.Remove(HelpButton);
+                    PageCommandBar.SecondaryCommands.Add(HelpButton);
                     PageCommandBar.PrimaryCommands.Remove(FullscreenButton);
                     PageCommandBar.SecondaryCommands.Add(FullscreenButton);
                 }
