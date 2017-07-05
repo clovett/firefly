@@ -15,7 +15,6 @@ namespace FireflyWindows.Networking
     /// </summary>
     class UdpMessageStream : IDisposable
     {
-        ManualResetEvent received = new ManualResetEvent(false);
         string response;
         DatagramSocket socket;
         EndpointPair pair;
@@ -93,7 +92,6 @@ namespace FireflyWindows.Networking
             if (msg != broadcastMessage)
             {
                 this.response = msg;
-                received.Set();
                 try
                 {
                     if (MessageReceived != null)

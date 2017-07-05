@@ -29,10 +29,10 @@ namespace FireflyWindows
         bool enableSensing = false; // not working yet
         DateTime connectTime;
         private Queue<FireflyMessage> queue = new Queue<FireflyMessage>();
-        ManualResetEvent available = new ManualResetEvent(false);
-        ManualResetEvent queueEmpty = new ManualResetEvent(false);
+        AutoResetEvent available = new AutoResetEvent(false);
+        AutoResetEvent queueEmpty = new AutoResetEvent(false);
         Mutex queueLock = new Mutex();
-        const int HeartbeatDelay = 2000; // 2 seconds
+        int HeartbeatDelay = 2000; // 5 seconds
 
         public event EventHandler<string> Error;
         public event EventHandler ConnectionChanged;
@@ -290,6 +290,13 @@ namespace FireflyWindows
 
         private void HandleHeartbeatResponse(FireflyMessage response)
         {
+            if (response.FireCommand == FireflyCommand.Ack)
+            {
+                if (HeartbeatDelay < 10000)
+                {
+                    HeartbeatDelay += 1000;
+                }
+            }
             LastHeartBeat = DateTime.Now;
             Debug.WriteLine("Heartbeat returned Arg1={0:x}, Arg2={1:x}", response.Arg1, response.Arg2);
             if (!this.connected)
@@ -404,7 +411,7 @@ namespace FireflyWindows
 
         internal void Arm(bool arm)
         {
-            if (arm && !enableSensing)
+            if (arm && !enableSensing && tubeState != null)
             {
                 // we can assume if we are arming then right now we are also fully loaded.
                 // (we do this because sensing isn't working yet)
@@ -425,7 +432,10 @@ namespace FireflyWindows
             int bits = 0;
             foreach (var i in tubes)
             {
-                tubeState[i] = 0;
+                if (i < tubeState.Length)
+                {
+                    tubeState[i] = 0;
+                }
                 bits |= (1 << i);
             }
             OnStateChanged();
