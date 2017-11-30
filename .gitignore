@@ -220,3 +220,6 @@ sdkconfig
 sdkconfig.old
 /esp_projects/hub/.vscode
 project.lock.json
+_pkginfo.txt
+Apps/FireflyWindowsUniversal/FireflyWindowsUniversal/Package.appxmanifest
+/BundleArtifacts/
